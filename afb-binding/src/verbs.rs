@@ -120,6 +120,7 @@ struct MeterEvtCtx {
     data_set: Rc<RefCell<MeterDataSet>>,
     labels: &'static [&'static str],
     meter_api: &'static str,
+    meter_prefix: &'static str,
     evt: &'static AfbEvent,
     energy_mgr: &'static ManagerHandle,
 }
@@ -170,7 +171,7 @@ fn evt_meter_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut MeterEvtCtx) {
                     AfbSubCall::call_sync(
                         evt.get_apiv4(),
                         ctx.meter_api,
-                        *label,
+                        [ctx.meter_prefix, label].join("/").as_str(),
                         ApiAction::UNSUBSCRIBE,
                     )?;
                 }
@@ -232,7 +233,7 @@ fn meter_request_cb(
         ApiAction::SUBSCRIBE => {
             // in case we are the 1st listener subscribe to low level energy meter api.
             for label in ctx.labels {
-                AfbSubCall::call_sync(rqt.get_api(), ctx.meter_api, label, ApiAction::SUBSCRIBE)?;
+                AfbSubCall::call_sync(rqt.get_api(), ctx.meter_api, [ctx.meter_prefix, label].join("/").as_str(), ApiAction::SUBSCRIBE)?;
             }
             ctx.evt.subscribe(rqt)?;
             rqt.reply(AFB_NO_DATA, 0);
@@ -308,6 +309,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             evt: tension_event,
             labels: &VOLTS,
             meter_api: config.meter_api,
+            meter_prefix: "SDM72D",
             energy_mgr: config.energy_mgr,
         }))
         .finalize()?;
@@ -336,6 +338,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             evt: current_event,
             labels: &VOLTS,
             meter_api: config.meter_api,
+            meter_prefix: "SDM72D",
             energy_mgr: config.energy_mgr,
         }))
         .finalize()?;
@@ -344,7 +347,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     let power_set = Rc::new(RefCell::new(MeterDataSet::default()));
     let power_event = AfbEvent::new(config.uid);
     let power_verb = AfbVerb::new("power")
-        .set_name("volts")
+        .set_name("power")
         .set_info("current power in watt*100")
         .set_action(ACTIONS)?
         .set_callback(Box::new(MeterRequestCtx {
@@ -364,6 +367,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             evt: power_event,
             labels: &VOLTS,
             meter_api: config.meter_api,
+            meter_prefix: "SDM72D",
             energy_mgr: config.energy_mgr,
         }))
         .finalize()?;
@@ -393,7 +397,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     let conf_verb = AfbVerb::new("energy-config")
-        .set_name("conf")
+        .set_name("configure")
         .set_info("configure max power/current")
         .set_sample("{'imax':10, 'pmax':22}")?
         .set_callback(Box::new(ConfRequestCtx {
