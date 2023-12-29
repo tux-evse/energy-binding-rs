@@ -1,0 +1,24 @@
+{
+    "name": "afb-energy",
+    "no-ldpaths": true,
+    "alias": [
+        "/devtools:/usr/share/afb-ui-devtools/binder"
+    ],
+    "monitoring": true,
+    "tracereq": "none",
+    "ws_client": ["public:tcp:upboard.tuxevse.vpn:1234/linky","public:tcp:upboard.tuxevse.vpn:1234/modbus"],
+    "binding": [
+        {
+            "uid": "energy-manager",
+            "api": "energy",
+            "path": "/home/fulup/.cargo/build/debug/libafb_energy.so",
+            "info": "set/get api",
+            "permission": "acl:nrj",
+            "linky_api": "linky",
+            "meter_api": "modbus",
+            "power_api": "tiam62x",
+            "tic": 1000,  // tic in ms
+            "current": 1, // variation in % for notification
+        }
+    ]
+}

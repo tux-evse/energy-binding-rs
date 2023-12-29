@@ -1,0 +1,158 @@
+{
+    "$schema": "http://iot.bzh/download/public/schema/json/ctl-schema.json",
+    "Comment": "https://xn--stromzhler-v5a.eu/media/pdf/93/17/d7/SDM72DM-V2.pdf",
+    "metadata": {
+      "uid": "modbus",
+      "version": "1.0",
+      "api": "modbus",
+      "info": "Generic Eastron default Test Config"
+    },
+    "modbus": [
+      {
+        "uid": "Eastron-SDM72D",
+        "info": "Three Phase Four Wire Energy Meter ",
+        "uri" : "tty://dev/ttyUSB_RS485:19200",
+        "prefix": "SDM72D",
+        "slaveid": 1,
+        "timeout": 250,
+        "autostart" : 1,
+        "privilege": "Eastron:Modbus",
+        "hertz": 10,
+        "sensors": [
+          {
+            "uid": "Volt-L1",
+            "register" : 0,
+            "info": "Volts",
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Volt-L2",
+            "register" : 2,
+            "info": "Volts",
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Volt-L3",
+            "register" : 4,
+            "info": "Volts",
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Amp-L1",
+            "register" : 6,
+            "info": "Amps",
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Amp-L2",
+            "register" : 8,
+            "info": "Amps",
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Amp-L3",
+            "register" : 10,
+            "info": "Amps",
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+                    {
+            "uid": "Watt-L1",
+            "info": "Watts",
+            "register" : 12,
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Watt-L2",
+            "register" : 14,
+            "info": "Watts",
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Watt-L3",
+            "register" : 16,
+            "info": "Watts",
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Volt-Avr",
+            "info": "Tension average in volts",
+            "register" : 42,
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Amp-Avr",
+            "info": "current average in amps",
+            "register" : 76,
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Amp-Total",
+            "info": "Current sum in amps",
+            "register" : 48,
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Watt-Total",
+            "info": "Power sum in watts",
+            "register" : 52,
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Energy-Session",
+            "info": "Resettable active energy in KWh",
+            "register" : 388,
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Energy-Total",
+            "info": "Total net energy in KWh",
+            "register" : 396,
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Frequency-Supply",
+            "register" : 70,
+            "type": "Register_input",
+            "format" : "FLOAT_DCBA"
+          },
+          {
+            "uid": "Reset-Counter",
+            "info": "reset all historical energy data (0x0003)",
+            "type": "Register_Holding",
+            "sample": [{"action":"write","data":3}],
+            "format" : "INT16",
+            "register" : 61456
+          },
+          {
+            "uid": "meter-Code",
+            "info": "Device SDM72D-M-2=> 0x89==137",
+            "type": "Register_Holding",
+            "format" : "INT16",
+            "register" : 64514
+          },
+          {
+            "uid": "Serial-Number",
+            "info": "Device Serial number",
+            "type": "Register_Holding",
+            "format" : "UINT32",
+            "register" : 64512
+          }
+       ]
+      }
+    ]
+}
