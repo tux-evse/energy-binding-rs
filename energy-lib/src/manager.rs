@@ -70,13 +70,13 @@ impl ManagerHandle {
         Ok(self)
     }
 
-    pub fn set_power_subscription(&self, kwh_max: i32) -> Result<&Self, AfbError> {
+    pub fn set_power_subscription(&self, watt_max: i32) -> Result<&Self, AfbError> {
         let mut data_set = match self.data_set.try_borrow_mut() {
             Err(_) => return afb_error!("energy-manager-update", "fail to access &mut data_set"),
             Ok(value) => value,
         };
 
-        data_set.subscription_max = kwh_max;
+        data_set.subscription_max = watt_max;
         Ok(self)
     }
 

@@ -46,10 +46,11 @@ impl AfbApiControls for ApiUserData {
     // the API is created and ready. At this level user may subcall api(s) declare as dependencies
     fn start(&mut self, api: &AfbApi) ->  Result<(),AfbError> {
         afb_log_msg!(Notice, api, "get linky max power api:{}/PCOUP", self.linky_api);
+        let response=AfbSubCall::call_sync(api, self.linky_api, "PCOUP", ApiAction::READ)?;
+        let data= response.get::<JsoncObj>(0)?.index::<i32>(0)?;
+        self.energy_mgr.set_power_subscription(data*1000)?;
 
-        let response= AfbSubCall::call_sync(api, self.linky_api, "PCOUP", ApiAction::SUBSCRIBE)?;
-        let max_kwh= response.get::<i32>(0)?;
-        self.energy_mgr.set_power_subscription(max_kwh)?;
+        AfbSubCall::call_sync(api, self.linky_api, "ADPS", ApiAction::SUBSCRIBE)?;
 
         Ok(())
     }
@@ -134,7 +135,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     // register api dependencies
     api.require_api(meter_api);
     api.require_api(linky_api);
-    api.require_api(power_api);
+    //api.require_api(power_api);
 
     Ok(api.finalize()?)
 }
