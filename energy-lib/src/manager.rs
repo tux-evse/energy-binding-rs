@@ -23,11 +23,12 @@ pub struct ManagerState {
 
 impl ManagerState {
     pub fn default() -> Self {
+        // Warning: unit are value*100
         ManagerState {
-            subscription_max: 0,
-            backend_max: 0,
-            cable_max: 0,
-            tension_max: 250,
+            subscription_max: 900,
+            backend_max: 900,
+            cable_max: 900,
+            tension_max: 25000,
         }
     }
 }

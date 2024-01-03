@@ -23,31 +23,24 @@ struct LinkyEvtCtx {
 }
 
 AfbEventRegister!(LinkyAdpsEvtCtrl, evt_linky_cb, LinkyEvtCtx);
-fn evt_linky_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyEvtCtx) {
-    let update_data = || -> Result<(), AfbError> {
-        let mut data_set = match ctx.data_set.try_borrow_mut() {
-            Err(_) => return afb_error!("energy-LinkyAdps-update", "fail to access energy state"),
-            Ok(value) => value,
-        };
-        let jreply = args.get::<JsoncObj>(0)?;
-        for idx in 0..jreply.count()? {
-            let value = jreply.index::<f64>(idx)?;
-            data_set.update(idx, value)?;
-        }
-        if data_set.updated {
-            ctx.energy_mgr.update_data_set(&data_set)?;
-            ctx.evt.broadcast(data_set.clone());
-        }
-        Ok(())
+fn evt_linky_cb(_evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyEvtCtx) -> Result<(), AfbError> {
+    let mut data_set = match ctx.data_set.try_borrow_mut() {
+        Err(_) => return afb_error!("energy-LinkyAdps-update", "fail to access energy state"),
+        Ok(value) => value,
     };
-
-    if let Err(error) = update_data() {
-        afb_log_msg!(Error, evt, &error);
+    let jreply = args.get::<JsoncObj>(0)?;
+    for idx in 0..jreply.count()? {
+        let value = jreply.index::<f64>(idx)?;
+        data_set.update(idx, value)?;
     }
+    if data_set.updated {
+        ctx.energy_mgr.update_data_set(&data_set)?;
+        ctx.evt.broadcast(data_set.clone());
+    }
+    Ok(())
 }
 
 struct AdpsRequestCtx {
-    data_tag: MeterTagSet,
     data_set: Rc<RefCell<MeterDataSet>>,
     linky_api: &'static str,
     adps_verb: &'static str,
@@ -87,7 +80,7 @@ fn adps_request_cb(
                 }
             }
 
-            data_set.tag = ctx.data_tag.clone();
+            data_set.tag = data_set.tag.clone();
             rqt.reply(data_set.clone(), 0);
         }
 
@@ -126,67 +119,60 @@ struct MeterEvtCtx {
 }
 
 AfbEventRegister!(MeterEvtCtrl, evt_meter_cb, MeterEvtCtx);
-fn evt_meter_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut MeterEvtCtx) {
-    let update_data = || -> Result<(), AfbError> {
-        let mut data_set = match ctx.data_set.try_borrow_mut() {
-            Err(_) => return afb_error!("energy-metercb-update", "fail to access energy state"),
-            Ok(value) => value,
-        };
-
-        let value = args.get::<f64>(0)?;
-
-        // move to bytes as rust cannot index str :(
-        let full_name = evt.get_name().as_bytes();
-        let short_name = match full_name.get(1 + ctx.meter_api.len()..full_name.len()) {
-            Some(value) => value,
-            None => {
-                return afb_error!(
-                    "energy-metercb-update",
-                    "evt_meter_cb meter argument not a valid float number"
-                )
-            }
-        };
-
-        for idx in 0..ctx.labels.len() {
-            let label = ctx.labels[idx].as_bytes();
-            if short_name == label {
-                data_set.update(idx, value)?;
-                break;
-            }
-        }
-
-        // to limit the number of events data is updated only when total value is received
-        if data_set.updated {
-            ctx.energy_mgr.update_data_set(&data_set)?;
-            let listeners = ctx.evt.push(data_set.clone());
-            // if no one listen then unsubscribe the low level energy meter events
-            if listeners <= 0 {
-                afb_log_msg!(
-                    Error,
-                    evt,
-                    "no more listener to energy event:{}",
-                    evt.get_uid()
-                );
-                for label in ctx.labels {
-                    AfbSubCall::call_sync(
-                        evt.get_apiv4(),
-                        ctx.meter_api,
-                        [ctx.meter_prefix, label].join("/").as_str(),
-                        ApiAction::UNSUBSCRIBE,
-                    )?;
-                }
-            }
-        }
-        Ok(())
+fn evt_meter_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut MeterEvtCtx) -> Result<(), AfbError> {
+    let mut data_set = match ctx.data_set.try_borrow_mut() {
+        Err(_) => return afb_error!("energy-metercb-update", "fail to access energy state"),
+        Ok(value) => value,
     };
 
-    if let Err(error) = update_data() {
-        afb_log_msg!(Error, evt, &error);
+    let value = args.get::<f64>(0)?;
+
+    // move to bytes as rust cannot index str :(
+    let full_name = evt.get_name().as_bytes();
+    let short_name = match full_name.get(1 + ctx.meter_api.len()..full_name.len()) {
+        Some(value) => value,
+        None => {
+            return afb_error!(
+                "energy-metercb-update",
+                "evt_meter_cb meter argument not a valid float number"
+            )
+        }
+    };
+
+    for idx in 0..ctx.labels.len() {
+        let label = ctx.labels[idx].as_bytes();
+        if short_name == label {
+            data_set.update(idx, value)?;
+            break;
+        }
     }
+
+    // to limit the number of events data is updated only when total value is received
+    if data_set.updated {
+        ctx.energy_mgr.update_data_set(&data_set)?;
+        let listeners = ctx.evt.push(data_set.clone());
+        // if no one listen then unsubscribe the low level energy meter events
+        if listeners <= 0 {
+            afb_log_msg!(
+                Notice,
+                evt,
+                "no more listener to energy event:{}",
+                evt.get_uid()
+            );
+            for label in ctx.labels {
+                AfbSubCall::call_sync(
+                    evt.get_apiv4(),
+                    ctx.meter_api,
+                    [ctx.meter_prefix, label].join("/").as_str(),
+                    ApiAction::UNSUBSCRIBE,
+                )?;
+            }
+        }
+    }
+    Ok(())
 }
 
 struct MeterRequestCtx {
-    data_tag: MeterTagSet,
     data_set: Rc<RefCell<MeterDataSet>>,
     meter_api: &'static str,
     meter_prefix: &'static str,
@@ -226,14 +212,19 @@ fn meter_request_cb(
                     _ => return afb_error!("energy-meter-update", "invalid index:{}", idx),
                 }
             }
-            data_set.tag = ctx.data_tag.clone();
+            data_set.tag = data_set.tag.clone();
             rqt.reply(data_set.clone(), 0);
         }
 
         ApiAction::SUBSCRIBE => {
             // in case we are the 1st listener subscribe to low level energy meter api.
             for label in ctx.labels {
-                AfbSubCall::call_sync(rqt.get_api(), ctx.meter_api, [ctx.meter_prefix, label].join("/").as_str(), ApiAction::SUBSCRIBE)?;
+                AfbSubCall::call_sync(
+                    rqt.get_api(),
+                    ctx.meter_api,
+                    [ctx.meter_prefix, label].join("/").as_str(),
+                    ApiAction::SUBSCRIBE,
+                )?;
             }
             ctx.evt.subscribe(rqt)?;
             rqt.reply(AFB_NO_DATA, 0);
@@ -286,14 +277,13 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     const ACTIONS: &str = "['read','subscribe','unsubscribe']";
 
     // Tension data_set from eastron modbus meter
-    let tension_set = Rc::new(RefCell::new(MeterDataSet::default()));
+    let tension_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Tension)));
     let tension_event = AfbEvent::new(config.uid);
     let tension_verb = AfbVerb::new("tension")
         .set_name("volts")
         .set_info("current tension in volt*100")
         .set_action(ACTIONS)?
         .set_callback(Box::new(MeterRequestCtx {
-            data_tag: MeterTagSet::Tension,
             data_set: tension_set.clone(),
             labels: &VOLTS,
             meter_api: config.meter_api,
@@ -315,14 +305,13 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Current data_set from eastron modbus meter
-    let current_set = Rc::new(RefCell::new(MeterDataSet::default()));
+    let current_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Current)));
     let current_event = AfbEvent::new(config.uid);
     let current_verb = AfbVerb::new("current")
         .set_name("amps")
         .set_info("current in amps*100")
         .set_action(ACTIONS)?
         .set_callback(Box::new(MeterRequestCtx {
-            data_tag: MeterTagSet::Current,
             data_set: current_set.clone(),
             labels: &CURRENTS,
             meter_api: config.meter_api,
@@ -344,14 +333,13 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Power data_set from eastron modbus meter
-    let power_set = Rc::new(RefCell::new(MeterDataSet::default()));
+    let power_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Power)));
     let power_event = AfbEvent::new(config.uid);
     let power_verb = AfbVerb::new("power")
         .set_name("power")
         .set_info("current power in watt*100")
         .set_action(ACTIONS)?
         .set_callback(Box::new(MeterRequestCtx {
-            data_tag: MeterTagSet::Power,
             data_set: power_set.clone(),
             labels: &POWER,
             meter_api: config.meter_api,
@@ -373,14 +361,15 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Over current data_set from Linky meter
-    let adps_set = Rc::new(RefCell::new(MeterDataSet::default()));
+    let adps_set = Rc::new(RefCell::new(MeterDataSet::default(
+        MeterTagSet::OverCurrent,
+    )));
     let adps_event = AfbEvent::new(config.uid);
     let adps_verb = AfbVerb::new("over-current")
         .set_name("adps")
         .set_info("current over current(adps) in A")
         .set_action(ACTIONS)?
         .set_callback(Box::new(AdpsRequestCtx {
-            data_tag: MeterTagSet::OverCurrent,
             data_set: adps_set.clone(),
             linky_api: config.linky_api,
             adps_verb: "ADPS",

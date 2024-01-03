@@ -38,9 +38,9 @@ pub struct MeterDataSet {
 }
 
 impl MeterDataSet {
-    pub fn default() -> Self {
+    pub fn default(tag:MeterTagSet) -> Self {
         MeterDataSet {
-            tag: MeterTagSet::default(),
+            tag: tag,
             variation: 1,
             updated: false,
             total: 0,
