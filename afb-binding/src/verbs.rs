@@ -158,17 +158,29 @@ fn evt_meter_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut MeterEvtCtx) -> Res
                 evt,
                 "no more listener to energy event({}) rc={}",
                 evt.get_uid(),
-                    listeners
+                listeners
             );
             for label in ctx.labels {
-                    afb_log_msg!(Notice, evt, "Unsubscribe api:{}/{}", ctx.meter_api,[ctx.meter_prefix, label].join("/"));
+                afb_log_msg!(
+                    Notice,
+                    evt,
+                    "Unsubscribe api:{}/{}",
+                    ctx.meter_api,
+                    [ctx.meter_prefix, label].join("/")
+                );
                 AfbSubCall::call_sync(
                     evt.get_apiv4(),
                     ctx.meter_api,
                     [ctx.meter_prefix, label].join("/").as_str(),
                     ApiAction::UNSUBSCRIBE,
                 )?;
-                    afb_log_msg!(Notice, evt, "Unsubscribed api:{}/{}", ctx.meter_api,[ctx.meter_prefix, label].join("/"));
+                afb_log_msg!(
+                    Notice,
+                    evt,
+                    "Unsubscribed api:{}/{}",
+                    ctx.meter_api,
+                    [ctx.meter_prefix, label].join("/")
+                );
             }
         }
     }
@@ -224,15 +236,10 @@ fn meter_request_cb(
             ctx.evt.subscribe(rqt)?;
             for label in ctx.labels {
                 AfbSubCall::call_sync(
-
                     rqt.get_api(),
-
                     ctx.meter_api,
-
                     [ctx.meter_prefix, label].join("/").as_str(),
-
                     ApiAction::SUBSCRIBE,
-                ,
                 )?;
             }
             rqt.reply(AFB_NO_DATA, 0);
@@ -286,7 +293,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     const ACTIONS: &str = "['read','subscribe','unsubscribe']";
 
     // Tension data_set from eastron modbus meter
-    let tension_set = Rc::new(RefCell::new(MeterDataSet::default()));
+    let tension_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Tension)));
     let tension_event = AfbEvent::new("tension");
     let tension_verb = AfbVerb::new("tension")
         .set_name("volts")
@@ -314,7 +321,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Current data_set from eastron modbus meter
-    let current_set = Rc::new(RefCell::new(MeterDataSet::default()));
+    let current_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Current)));
     let current_event = AfbEvent::new("current");
     let current_verb = AfbVerb::new("current")
         .set_name("amps")
@@ -342,7 +349,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Power data_set from eastron modbus meter
-    let power_set = Rc::new(RefCell::new(MeterDataSet::default()));
+    let power_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Power)));
     let power_event = AfbEvent::new("power");
     let power_verb = AfbVerb::new("power")
         .set_name("power")
@@ -370,7 +377,9 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Over current data_set from Linky meter
-    let adps_set = Rc::new(RefCell::new(MeterDataSet::default()));
+    let adps_set = Rc::new(RefCell::new(MeterDataSet::default(
+        MeterTagSet::OverCurrent,
+    )));
     let adps_event = AfbEvent::new("over-current");
     let adps_verb = AfbVerb::new("over-current")
         .set_name("adps")
