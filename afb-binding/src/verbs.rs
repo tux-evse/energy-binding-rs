@@ -156,16 +156,19 @@ fn evt_meter_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut MeterEvtCtx) -> Res
             afb_log_msg!(
                 Notice,
                 evt,
-                "no more listener to energy event:{}",
-                evt.get_uid()
+                "no more listener to energy event({}) rc={}",
+                evt.get_uid(),
+                    listeners
             );
             for label in ctx.labels {
+                    afb_log_msg!(Notice, evt, "Unsubscribe api:{}/{}", ctx.meter_api,[ctx.meter_prefix, label].join("/"));
                 AfbSubCall::call_sync(
                     evt.get_apiv4(),
                     ctx.meter_api,
                     [ctx.meter_prefix, label].join("/").as_str(),
                     ApiAction::UNSUBSCRIBE,
                 )?;
+                    afb_log_msg!(Notice, evt, "Unsubscribed api:{}/{}", ctx.meter_api,[ctx.meter_prefix, label].join("/"));
             }
         }
     }
@@ -217,20 +220,26 @@ fn meter_request_cb(
         }
 
         ApiAction::SUBSCRIBE => {
-            // in case we are the 1st listener subscribe to low level energy meter api.
+            afb_log_msg!(Notice, rqt, "Subscribe {}", ctx.evt.get_uid());
+            ctx.evt.subscribe(rqt)?;
             for label in ctx.labels {
                 AfbSubCall::call_sync(
+
                     rqt.get_api(),
+
                     ctx.meter_api,
+
                     [ctx.meter_prefix, label].join("/").as_str(),
+
                     ApiAction::SUBSCRIBE,
+                ,
                 )?;
             }
-            ctx.evt.subscribe(rqt)?;
             rqt.reply(AFB_NO_DATA, 0);
         }
 
         ApiAction::UNSUBSCRIBE => {
+            afb_log_msg!(Notice, rqt, "Unsubscribe {}", ctx.evt.get_uid());
             ctx.evt.unsubscribe(rqt)?;
             rqt.reply(AFB_NO_DATA, 0);
         }
@@ -277,8 +286,8 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     const ACTIONS: &str = "['read','subscribe','unsubscribe']";
 
     // Tension data_set from eastron modbus meter
-    let tension_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Tension)));
-    let tension_event = AfbEvent::new(config.uid);
+    let tension_set = Rc::new(RefCell::new(MeterDataSet::default()));
+    let tension_event = AfbEvent::new("tension");
     let tension_verb = AfbVerb::new("tension")
         .set_name("volts")
         .set_info("current tension in volt*100")
@@ -305,8 +314,8 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Current data_set from eastron modbus meter
-    let current_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Current)));
-    let current_event = AfbEvent::new(config.uid);
+    let current_set = Rc::new(RefCell::new(MeterDataSet::default()));
+    let current_event = AfbEvent::new("current");
     let current_verb = AfbVerb::new("current")
         .set_name("amps")
         .set_info("current in amps*100")
@@ -333,8 +342,8 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Power data_set from eastron modbus meter
-    let power_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Power)));
-    let power_event = AfbEvent::new(config.uid);
+    let power_set = Rc::new(RefCell::new(MeterDataSet::default()));
+    let power_event = AfbEvent::new("power");
     let power_verb = AfbVerb::new("power")
         .set_name("power")
         .set_info("current power in watt*100")
@@ -361,10 +370,8 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Over current data_set from Linky meter
-    let adps_set = Rc::new(RefCell::new(MeterDataSet::default(
-        MeterTagSet::OverCurrent,
-    )));
-    let adps_event = AfbEvent::new(config.uid);
+    let adps_set = Rc::new(RefCell::new(MeterDataSet::default()));
+    let adps_event = AfbEvent::new("over-current");
     let adps_verb = AfbVerb::new("over-current")
         .set_name("adps")
         .set_info("current over current(adps) in A")

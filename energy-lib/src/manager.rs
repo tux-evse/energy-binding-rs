@@ -29,6 +29,10 @@ impl ManagerState {
             backend_max: 900,
             cable_max: 900,
             tension_max: 25000,
+            subscription_max: 1,
+            backend_max: 1,
+            cable_max: 1,
+            tension_max: 250,
         }
     }
 }

@@ -1,24 +1,144 @@
 {
     "name": "afb-energy",
     "no-ldpaths": true,
+    "jobs-max":30,
+    "threads-max":10,
     "alias": [
         "/devtools:/usr/share/afb-ui-devtools/binder"
     ],
     "monitoring": true,
     "tracereq": "none",
-    "ws_client": ["public:tcp:upboard.tuxevse.vpn:1234/linky","public:tcp:upboard.tuxevse.vpn:1234/modbus"],
+    "ws_client": [
+        "public:tcp:upboard.tuxevse.vpn:1234/linky",
+        "public:tcp:upboard.tuxevse.vpn:1234/modbus"
+    ],
     "binding": [
         {
             "uid": "energy-manager",
             "api": "energy",
-            "path": "/home/fulup/.cargo/build/debug/libafb_energy.so",
+            "path": "/usr/redpesk/energy-binding-rs/lib/libafb_energy.so",
             "info": "set/get api",
             "permission": "acl:nrj",
             "linky_api": "linky",
             "meter_api": "modbus",
             "power_api": "tiam62x",
-            "tic": 1000,  // tic in ms
+            "tic": 1000, // tic in ms
             "current": 1, // variation in % for notification
+        },
+        {
+            "uid": "linky-meeter",
+            "api": "linky",
+            "permission": "acl:linky",
+            "path": "/usr/redpesk/linky-binding-rs/lib/libafb_linky.so",
+            "info": "Linky French meeter api",
+            "device": "/dev/ttyUSB_TIC",
+            "speed": 9600,
+            "parity": "even",
+            "cycle": 25
+        },
+        {
+            "path": "/usr/redpesk/modbus-binding/lib/afb-modbus.so",
+            "reference": "https://xn--stromzhler-v5a.eu/media/pdf/93/17/d7/SDM72DM-V2.pdf",
+            "metadata": {
+                "uid": "modbus",
+                "version": "1.0",
+                "api": "modbus",
+                "info": "Generic Eastron default Test Config",
+            },
+            "modbus": {
+                "uid": "Eastron-SDM72D",
+                "info": "Three Phase Four Wire Energy Meter ",
+                "uri": "tty://dev/ttyUSB_RS485:19200",
+                "prefix": "SDM72D",
+                "slaveid": 1,
+                "timeout": 250,
+                "autostart": 1,
+                "privilege": "Eastron:Modbus",
+                "hertz": 1,
+                "sensors": [
+                    {
+                        "uid": "Volt-L1",
+                        "register": 0,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA",
+                        "sample": [
+                            {
+                                "action": "read"
+                            },
+                            {
+                                "action": "subscribe"
+                            }
+                        ]
+                    },
+                    {
+                        "uid": "Volt-L2",
+                        "register": 2,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Volt-L3",
+                        "register": 4,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Current-L1",
+                        "register": 6,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Current-L2",
+                        "register": 8,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Current-L3",
+                        "register": 10,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Volt-Avr",
+                        "register": 42,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Current-Avr",
+                        "register": 76,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Current-Total",
+                        "register": 48,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Power-Total",
+                        "register": 52,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Frequency-Supply",
+                        "register": 70,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "SERIAL-NUMBER",
+                        "info": "Device Serial number",
+                        "type": "Register_Holding",
+                        "format": "UINT32",
+                        "register": 64512
+                    }
+                ]
+            }
         }
     ]
 }
