@@ -12,6 +12,7 @@
 use serde::{Deserialize, Serialize};
 use crate::prelude::*;
 use afbv4::prelude::*;
+use typesv4::prelude::*;
 use energy::prelude::*;
 
 pub(crate) fn to_static_str(value: String) -> &'static str {
@@ -68,7 +69,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
 
     // add binding custom converter
     api_actions::register()?;
-    types_registers()?;
+    engy_registers()?;
 
     let uid = if let Ok(value) = jconf.get::<String>("uid") {
         to_static_str(value)
@@ -109,7 +110,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     let permission = if let Ok(value) = jconf.get::<String>("permission") {
         AfbPermission::new(to_static_str(value))
     } else {
-        AfbPermission::new("acl:nrj:client")
+        AfbPermission::new("acl:engy:client")
     };
 
     // let create the energy manager now in order to share it with verbs/events

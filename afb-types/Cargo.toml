@@ -1,5 +1,5 @@
 [package]
-name = "energy-binding"
+name = "typesv4"
 version = "0.0.1"
 edition = "2021"
 authors = ["Fulup Le Foll <fulup@iot.bzh>"]
@@ -10,10 +10,8 @@ build = "etc/build.rs"
 afbv4 = {git= "https://github.com/redpesk-common/afb-librust", branch="master", optional = true}
 serde = { version = "1.0", features = ["derive"] }
 serde_json={ version= "1.0"}
-libenergy= {path ="../energy-lib"}
-typesv4= {path ="../afb-types"}
 
 [lib]
-name = "afb_energy"
-crate-type = ["cdylib"]
+name = "typesv4"
+crate-type = ["lib"]
 path = "src/libso.rs"

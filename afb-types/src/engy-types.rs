@@ -86,7 +86,7 @@ impl MeterDataSet {
     }
 }
 
-pub fn types_registers() -> Result <(), AfbError> {
+pub fn engy_registers() -> Result <(), AfbError> {
 
     // add binding custom converter
     meter_data_set::register()?;

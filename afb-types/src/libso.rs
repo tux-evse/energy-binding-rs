@@ -18,9 +18,9 @@
 #[cfg(not(afbv4))]
 extern crate afbv4;
 
-#[path = "manager.rs"]
-mod manager;
+#[path = "engy-types.rs"]
+mod engy;
 
 pub mod prelude {
-    pub use crate::manager::*;
+    pub use crate::engy::*;
 }
