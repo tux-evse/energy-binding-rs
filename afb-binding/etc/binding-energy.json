@@ -125,6 +125,18 @@
                         "format": "FLOAT_DCBA"
                     },
                     {
+                        "uid": "Energy-Total",
+                        "register": 128,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Reset-Energy",
+                        "register": 16,
+                        "type": "Coil_Holding",
+                        "format": "INT32"
+                    },
+                    {
                         "uid": "Frequency-Supply",
                         "register": 70,
                         "type": "Register_input",

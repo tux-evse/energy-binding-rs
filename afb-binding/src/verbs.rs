@@ -53,8 +53,8 @@ fn adps_request_cb(
     args: &AfbData,
     ctx: &mut AdpsRequestCtx,
 ) -> Result<(), AfbError> {
-    match args.get::<&ApiAction>(0)? {
-        ApiAction::READ => {
+    match args.get::<&SensorAction>(0)? {
+        SensorAction::READ => {
             let mut data_set = match ctx.data_set.try_borrow_mut() {
                 Err(_) => {
                     return afb_error!("energy-LinkyAdps-update", "fail to access energy state")
@@ -66,7 +66,7 @@ fn adps_request_cb(
                 rqt.get_api(),
                 ctx.linky_api,
                 ctx.adps_verb,
-                ApiAction::READ,
+                SensorAction::READ,
             )?;
 
             let jreply = response.get::<JsoncObj>(0)?;
@@ -85,18 +85,18 @@ fn adps_request_cb(
             rqt.reply(data_set.clone(), 0);
         }
 
-        ApiAction::SUBSCRIBE => {
+        SensorAction::SUBSCRIBE => {
             AfbSubCall::call_sync(
                 rqt.get_api(),
                 ctx.linky_api,
                 ctx.adps_verb,
-                ApiAction::SUBSCRIBE,
+                SensorAction::SUBSCRIBE,
             )?;
             ctx.evt.subscribe(rqt)?;
             rqt.reply(AFB_NO_DATA, 0);
         }
 
-        ApiAction::UNSUBSCRIBE => {
+        SensorAction::UNSUBSCRIBE => {
             ctx.evt.unsubscribe(rqt)?;
             rqt.reply(AFB_NO_DATA, 0);
         }
@@ -173,7 +173,7 @@ fn evt_meter_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut MeterEvtCtx) -> Res
                     evt.get_apiv4(),
                     ctx.meter_api,
                     [ctx.meter_prefix, label].join("/").as_str(),
-                    ApiAction::UNSUBSCRIBE,
+                    SensorAction::UNSUBSCRIBE,
                 )?;
                 afb_log_msg!(
                     Notice,
@@ -201,8 +201,8 @@ fn meter_request_cb(
     args: &AfbData,
     ctx: &mut MeterRequestCtx,
 ) -> Result<(), AfbError> {
-    match args.get::<&ApiAction>(0)? {
-        ApiAction::READ => {
+    match args.get::<&SensorAction>(0)? {
+        SensorAction::READ => {
             let mut data_set = match ctx.data_set.try_borrow_mut() {
                 Err(_) => return afb_error!("energy-meter-update", "fail to access energy state"),
                 Ok(value) => value,
@@ -214,7 +214,7 @@ fn meter_request_cb(
                     rqt.get_api(),
                     ctx.meter_api,
                     [ctx.meter_prefix, label].join("/").as_str(),
-                    ApiAction::READ,
+                    SensorAction::READ,
                 )?;
                 let data = response.get::<f64>(0)?;
 
@@ -232,7 +232,7 @@ fn meter_request_cb(
             rqt.reply(data_set.clone(), 0);
         }
 
-        ApiAction::SUBSCRIBE => {
+        SensorAction::SUBSCRIBE => {
             afb_log_msg!(Notice, rqt, "Subscribe {}", ctx.evt.get_uid());
             ctx.evt.subscribe(rqt)?;
             for label in ctx.labels {
@@ -240,13 +240,13 @@ fn meter_request_cb(
                     rqt.get_api(),
                     ctx.meter_api,
                     [ctx.meter_prefix, label].join("/").as_str(),
-                    ApiAction::SUBSCRIBE,
+                    SensorAction::SUBSCRIBE,
                 )?;
             }
             rqt.reply(AFB_NO_DATA, 0);
         }
 
-        ApiAction::UNSUBSCRIBE => {
+        SensorAction::UNSUBSCRIBE => {
             afb_log_msg!(Notice, rqt, "Unsubscribe {}", ctx.evt.get_uid());
             ctx.evt.unsubscribe(rqt)?;
             rqt.reply(AFB_NO_DATA, 0);

@@ -19,15 +19,25 @@ pub(crate) fn to_static_str(value: String) -> &'static str {
     Box::leak(value.into_boxed_str())
 }
 
-AfbDataConverter!(api_actions, ApiAction);
+AfbDataConverter!(sensor_actions, SensorAction);
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "lowercase", tag = "action")]
-pub enum ApiAction {
+pub enum SensorAction {
     #[default]
     READ,
     SUBSCRIBE,
     UNSUBSCRIBE,
     INFO,
+}
+
+AfbDataConverter!(session_actions, SessionAction);
+#[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(rename_all = "lowercase", tag = "action")]
+pub enum SessionAction {
+    #[default]
+    READ,
+    START,
+    STOP,
 }
 
 pub struct BindingCfg {
@@ -47,11 +57,11 @@ impl AfbApiControls for ApiUserData {
     // the API is created and ready. At this level user may subcall api(s) declare as dependencies
     fn start(&mut self, api: &AfbApi) ->  Result<(),AfbError> {
         afb_log_msg!(Notice, api, "get linky max power api:{}/PCOUP", self.linky_api);
-        let response=AfbSubCall::call_sync(api, self.linky_api, "PCOUP", ApiAction::READ)?;
+        let response=AfbSubCall::call_sync(api, self.linky_api, "PCOUP", SensorAction::READ)?;
         let data= response.get::<JsoncObj>(0)?.index::<i32>(0)?;
         self.energy_mgr.set_power_subscription(data*1000)?;
 
-        AfbSubCall::call_sync(api, self.linky_api, "ADPS", ApiAction::SUBSCRIBE)?;
+        AfbSubCall::call_sync(api, self.linky_api, "ADPS", SensorAction::SUBSCRIBE)?;
 
         Ok(())
     }
@@ -68,7 +78,8 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     afb_log_msg!(Info, rootv4, "config:{}", jconf);
 
     // add binding custom converter
-    api_actions::register()?;
+    sensor_actions::register()?;
+    session_actions::register()?;
     engy_registers()?;
 
     let uid = if let Ok(value) = jconf.get::<String>("uid") {
