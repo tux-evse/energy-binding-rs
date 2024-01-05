@@ -348,7 +348,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     let energy_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Energy)));
     let energy_event = AfbEvent::new("energy");
     let energy_verb = AfbVerb::new("energy")
-        .set_name("volts")
+        .set_name("energy")
         .set_info("current energy in volt*100")
         .set_action(RESET)?
         .set_callback(Box::new(MeterRequestCtx {
