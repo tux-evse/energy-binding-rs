@@ -1,29 +1,6 @@
 {
     "binding": [
         {
-            "uid": "energy-manager",
-            "api": "engy",
-            "path": "/usr/redpesk/energy-binding-rs/lib/libafb_energy.so",
-            "info": "set/get api",
-            "permission": "acl:engy",
-            "linky_api": "linky",
-            "meter_api": "modbus",
-            "watt_api": "tiam62x",
-            "tic": 1000, // tic in ms
-            "amp": 1, // variation in % for notification
-        },
-        {
-            "uid": "linky-meeter",
-            "api": "linky",
-            "permission": "acl:linky",
-            "path": "/usr/redpesk/linky-binding-rs/lib/libafb_linky.so",
-            "info": "Linky French meeter api",
-            "device": "/dev/ttyUSB_TIC",
-            "speed": 9600,
-            "parity": "even",
-            "cycle": 25
-        },
-        {
             "path": "/usr/redpesk/modbus-binding/lib/afb-modbus.so",
             "reference": "https://xn--stromzhler-v5a.eu/media/pdf/93/17/d7/SDM72DM-V2.pdf",
             "metadata": {

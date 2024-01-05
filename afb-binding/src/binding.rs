@@ -96,12 +96,6 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
         return afb_error!("energy-binding-config", "mandatory 'linky_api' not defined in binding json config")
     };
 
-    let power_api = if let Ok(value) = jconf.get::<String>("power_api") {
-        to_static_str(value)
-    } else {
-        return afb_error!("energy-binding-config", "mandatory 'power_api' not defined in binding json config")
-    };
-
     let meter_api = if let Ok(value) = jconf.get::<String>("meter_api") {
         to_static_str(value)
     } else {
