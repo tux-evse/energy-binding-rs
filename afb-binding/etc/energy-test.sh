@@ -8,4 +8,4 @@ pkill afb-energy
 echo Starting EnergyMgr in debug mode config=$CONTROL_CONFIG_PATH
 cynagora-admin set '' 'HELLO' '' '*' yes
 
-afb-binder --name=afb-energy --port=1234 -v --config=$DIRNAME/binding-energy.json
+afb-binder --name=afb-energy --port=1234 -v --config=$DIRNAME/energy-binder.json --config=$DIRNAME/energy-binding.json

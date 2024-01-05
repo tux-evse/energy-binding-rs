@@ -27,17 +27,8 @@ pub enum SensorAction {
     READ,
     SUBSCRIBE,
     UNSUBSCRIBE,
+    RESET,
     INFO,
-}
-
-AfbDataConverter!(session_actions, SessionAction);
-#[derive(Serialize, Deserialize, Debug, Default)]
-#[serde(rename_all = "lowercase", tag = "action")]
-pub enum SessionAction {
-    #[default]
-    READ,
-    START,
-    STOP,
 }
 
 pub struct BindingCfg {
@@ -79,7 +70,6 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
 
     // add binding custom converter
     sensor_actions::register()?;
-    session_actions::register()?;
     engy_registers()?;
 
     let uid = if let Ok(value) = jconf.get::<String>("uid") {

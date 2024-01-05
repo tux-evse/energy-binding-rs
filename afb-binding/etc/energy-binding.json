@@ -1,17 +1,4 @@
 {
-    "name": "afb-energy",
-    "no-ldpaths": true,
-    "jobs-max":30,
-    "threads-max":10,
-    "alias": [
-        "/devtools:/usr/share/afb-ui-devtools/binder"
-    ],
-    "monitoring": true,
-    "tracereq": "none",
-    "ws_client": [
-        "public:tcp:upboard.tuxevse.vpn:1234/linky",
-        "public:tcp:upboard.tuxevse.vpn:1234/modbus"
-    ],
     "binding": [
         {
             "uid": "energy-manager",
@@ -21,9 +8,9 @@
             "permission": "acl:engy",
             "linky_api": "linky",
             "meter_api": "modbus",
-            "power_api": "tiam62x",
+            "watt_api": "tiam62x",
             "tic": 1000, // tic in ms
-            "current": 1, // variation in % for notification
+            "amp": 1, // variation in % for notification
         },
         {
             "uid": "linky-meeter",
@@ -83,19 +70,19 @@
                         "format": "FLOAT_DCBA"
                     },
                     {
-                        "uid": "Current-L1",
+                        "uid": "Amp-L1",
                         "register": 6,
                         "type": "Register_input",
                         "format": "FLOAT_DCBA"
                     },
                     {
-                        "uid": "Current-L2",
+                        "uid": "Amp-L2",
                         "register": 8,
                         "type": "Register_input",
                         "format": "FLOAT_DCBA"
                     },
                     {
-                        "uid": "Current-L3",
+                        "uid": "Amp-L3",
                         "register": 10,
                         "type": "Register_input",
                         "format": "FLOAT_DCBA"
@@ -107,33 +94,64 @@
                         "format": "FLOAT_DCBA"
                     },
                     {
-                        "uid": "Current-Avr",
+                        "uid": "Amp-Avr",
                         "register": 76,
                         "type": "Register_input",
                         "format": "FLOAT_DCBA"
                     },
                     {
-                        "uid": "Current-Total",
+                        "uid": "Amp-Total",
                         "register": 48,
                         "type": "Register_input",
                         "format": "FLOAT_DCBA"
                     },
                     {
-                        "uid": "Power-Total",
+                        "uid": "Watt-L1",
+                        "info": "Watts",
+                        "register": 12,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Watt-L2",
+                        "register": 14,
+                        "info": "Watts",
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Watt-L3",
+                        "register": 16,
+                        "info": "Watts",
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Watt-Total",
                         "register": 52,
                         "type": "Register_input",
                         "format": "FLOAT_DCBA"
                     },
                     {
                         "uid": "Energy-Total",
-                        "register": 128,
+                        "register": 342,
                         "type": "Register_input",
                         "format": "FLOAT_DCBA"
                     },
                     {
-                        "uid": "Reset-Energy",
-                        "register": 16,
+                        "uid": "Energy-Session",
+                        "register": 384,
+                        "type": "Register_input",
+                        "format": "FLOAT_DCBA"
+                    },
+                    {
+                        "uid": "Energy-Reset",
+                        "register": 61456,
                         "type": "Coil_Holding",
+                        "sample": {
+                            "action": "write",
+                            "data": 3
+                        },
                         "format": "INT32"
                     },
                     {

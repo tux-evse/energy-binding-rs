@@ -9,8 +9,8 @@
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  */
-use serde::{Deserialize, Serialize};
 use afbv4::prelude::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub enum MeterTagSet {
@@ -18,6 +18,7 @@ pub enum MeterTagSet {
     Tension,
     Power,
     OverCurrent,
+    Energy,
     #[default]
     Unset,
 }
@@ -26,6 +27,8 @@ pub enum MeterTagSet {
 AfbDataConverter!(meter_data_set, MeterDataSet);
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct MeterDataSet {
+    #[serde(skip_serializing)]
+    pub start: i32,
     #[serde(skip_serializing)]
     pub variation: i32,
     #[serde(skip_serializing)]
@@ -38,10 +41,11 @@ pub struct MeterDataSet {
 }
 
 impl MeterDataSet {
-    pub fn default(tag:MeterTagSet) -> Self {
+    pub fn default(tag: MeterTagSet) -> Self {
         MeterDataSet {
             tag: tag,
             variation: 1,
+            start: 0,
             updated: false,
             total: 0,
             l1: 0,
@@ -51,10 +55,11 @@ impl MeterDataSet {
     }
 
     // update data_set and set updated flag when total changes.
-    pub fn update(&mut self, phase: usize, meter: f64) -> Result <(),AfbError>{
+    pub fn update(&mut self, phase: usize, meter: f64) -> Result<(), AfbError> {
         let value = (meter * 100.0).round() as i32;
         match phase {
             0 => {
+                let value = value - self.start; // special reset counter
                 if self.total * 100 / self.variation < value
                     || value > self.l3 * 100 / self.variation
                 {
@@ -80,14 +85,13 @@ impl MeterDataSet {
                     self.l3 = value;
                 }
             }
-            _ => { return afb_error!("data-set-update", "invalid phase:{}", phase)}
+            _ => return afb_error!("data-set-update", "invalid phase:{}", phase),
         }
         Ok(())
     }
 }
 
-pub fn engy_registers() -> Result <(), AfbError> {
-
+pub fn engy_registers() -> Result<(), AfbError> {
     // add binding custom converter
     meter_data_set::register()?;
     Ok(())

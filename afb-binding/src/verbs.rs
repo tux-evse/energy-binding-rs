@@ -12,10 +12,10 @@
 
 use crate::prelude::*;
 use afbv4::prelude::*;
-use typesv4::prelude::*;
 use energy::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
+use typesv4::prelude::*;
 
 struct LinkyEvtCtx {
     energy_mgr: &'static ManagerHandle,
@@ -201,13 +201,13 @@ fn meter_request_cb(
     args: &AfbData,
     ctx: &mut MeterRequestCtx,
 ) -> Result<(), AfbError> {
+    let mut data_set = match ctx.data_set.try_borrow_mut() {
+        Err(_) => return afb_error!("energy-meter-update", "fail to access energy state"),
+        Ok(value) => value,
+    };
+
     match args.get::<&SensorAction>(0)? {
         SensorAction::READ => {
-            let mut data_set = match ctx.data_set.try_borrow_mut() {
-                Err(_) => return afb_error!("energy-meter-update", "fail to access energy state"),
-                Ok(value) => value,
-            };
-
             for idx in 0..ctx.labels.len() {
                 let label = ctx.labels[idx];
                 let response = AfbSubCall::call_sync(
@@ -217,8 +217,8 @@ fn meter_request_cb(
                     SensorAction::READ,
                 )?;
                 let data = response.get::<f64>(0)?;
-
                 data_set.update(idx, data)?;
+
                 let value = (data * 100.0).round() as i32;
                 match idx {
                     0 => data_set.total = value,
@@ -243,21 +243,42 @@ fn meter_request_cb(
                     SensorAction::SUBSCRIBE,
                 )?;
             }
-            rqt.reply(AFB_NO_DATA, 0);
         }
 
         SensorAction::UNSUBSCRIBE => {
             afb_log_msg!(Notice, rqt, "Unsubscribe {}", ctx.evt.get_uid());
             ctx.evt.unsubscribe(rqt)?;
-            rqt.reply(AFB_NO_DATA, 0);
+        }
+
+        // use l1 to provide session power
+        SensorAction::RESET => {
+            match data_set.tag {
+                MeterTagSet::Energy => {}
+                _ => return afb_error!(
+                    rqt.get_uid().as_str(),
+                    "action reset not supported for tag:{:?}",
+                    data_set.tag
+                )
+            }
+
+            // read meeter reset energy counter value
+            let response = AfbSubCall::call_sync(
+                rqt.get_api(),
+                ctx.meter_api,
+                [ctx.meter_prefix, ctx.labels[0]].join("/").as_str(),
+                SensorAction::READ,
+            )?;
+            let data = response.get::<f64>(0)?;
+            data_set.start = (data * 100.0).round() as i32;
         }
         _ => {
             return afb_error!(
                 rqt.get_uid().as_str(),
-                "action not supported use [read|subscribe|unsubscribe]"
+                "action not supported use [read|subscribe|unsubscribe|reset]"
             )
         }
     }
+    rqt.reply(AFB_NO_DATA, 0);
     Ok(())
 }
 
@@ -288,10 +309,12 @@ fn conf_request_cb(
 }
 
 pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(), AfbError> {
+    const ACTIONS: &str = "['read','subscribe','unsubscribe']";
+    const RESET: &str = "['read','subscribe','unsubscribe','reset']";
     const VOLTS: [&str; 4] = ["Volt-Avr", "Volt-L1", "Volt-L2", "Volt-L3"];
     const CURRENTS: [&str; 4] = ["Amp-Total", "Amp-L1", "Amp-L2", "Amp-L3"];
     const POWER: [&str; 4] = ["Watt-Total", "Watt-L1", "Watt-L2", "Watt-L3"];
-    const ACTIONS: &str = "['read','subscribe','unsubscribe']";
+    const ENERGY: [&str; 2] = ["Energy-Session","Energy-Total"];
 
     // Tension data_set from eastron modbus meter
     let tension_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Tension)));
@@ -315,6 +338,34 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             data_set: tension_set.clone(),
             evt: tension_event,
             labels: &VOLTS,
+            meter_api: config.meter_api,
+            meter_prefix: "SDM72D",
+            energy_mgr: config.energy_mgr,
+        }))
+        .finalize()?;
+
+    // Energy data_set from eastron modbus meter
+    let energy_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Energy)));
+    let energy_event = AfbEvent::new("energy");
+    let energy_verb = AfbVerb::new("energy")
+        .set_name("volts")
+        .set_info("current energy in volt*100")
+        .set_action(RESET)?
+        .set_callback(Box::new(MeterRequestCtx {
+            data_set: energy_set.clone(),
+            labels: &ENERGY,
+            meter_api: config.meter_api,
+            meter_prefix: "SDM72D",
+            evt: energy_event,
+        }))
+        .finalize()?;
+
+    let energy_handler = AfbEvtHandler::new("energy-evt")
+        .set_pattern(to_static_str(format!("{}/Ener*", config.meter_api)))
+        .set_callback(Box::new(MeterEvtCtrl {
+            data_set: energy_set.clone(),
+            evt: energy_event,
+            labels: &ENERGY,
             meter_api: config.meter_api,
             meter_prefix: "SDM72D",
             energy_mgr: config.energy_mgr,
@@ -415,6 +466,10 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     api.add_event(tension_event);
     api.add_evt_handler(tension_handler);
     api.add_verb(tension_verb);
+
+    api.add_event(energy_event);
+    api.add_evt_handler(energy_handler);
+    api.add_verb(energy_verb);
 
     api.add_event(current_event);
     api.add_evt_handler(current_handler);

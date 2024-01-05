@@ -1,0 +1,11 @@
+{
+    "name": "afb-energy",
+    "no-ldpaths": true,
+    "jobs-max":30,
+    "threads-max":10,
+    "alias": [
+        "/devtools:/usr/share/afb-ui-devtools/binder"
+    ],
+    "monitoring": true,
+    "tracereq": "none"
+}
