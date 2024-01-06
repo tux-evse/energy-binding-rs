@@ -35,16 +35,14 @@ impl ManagerState {
 
 pub struct ManagerHandle {
     data_set: RefCell<ManagerState>,
-    root_api: AfbApiV4,
-    power_api: &'static str,
+    event: &'static AfbEvent,
 }
 
 impl ManagerHandle {
-    pub fn new(root_api: AfbApiV4, power_api: &'static str) -> &'static mut Self {
+    pub fn new(event: &'static AfbEvent) -> &'static mut Self {
         let handle = ManagerHandle {
             data_set: RefCell::new(ManagerState::default()),
-            power_api,
-            root_api,
+            event,
         };
 
         // return a static handle to prevent Rust from complaining when moving/sharing it
@@ -84,12 +82,17 @@ impl ManagerHandle {
     pub fn notify_over_power(&self, tag: &MeterTagSet, over_power: i32) -> Result<(), AfbError> {
         afb_log_msg!(
             Notice,
-            self.root_api,
+            self.event,
             "Request to stop vehicle power tag:{:?} over-power:{}",
             tag,
             over_power
         );
-        AfbSubCall::call_sync(self.root_api, self.power_api, "power", false)?;
+        self.event.push(false);
+        Ok(())
+    }
+
+    pub fn subscribe_over_power(&self, rqt: &AfbRequest ) -> Result<(), AfbError> {
+        self.event.subscribe(rqt)?;
         Ok(())
     }
 

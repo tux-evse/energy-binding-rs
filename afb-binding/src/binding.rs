@@ -35,7 +35,6 @@ pub struct BindingCfg {
     pub uid: &'static str,
     pub linky_api: &'static str,
     pub meter_api: &'static str,
-    pub power_api: &'static str,
     pub energy_mgr: &'static ManagerHandle,
 }
 
@@ -53,7 +52,6 @@ impl AfbApiControls for ApiUserData {
         self.energy_mgr.set_power_subscription(data*1000)?;
 
         AfbSubCall::call_sync(api, self.linky_api, "ADPS", SensorAction::SUBSCRIBE)?;
-
         Ok(())
     }
 
@@ -108,23 +106,25 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
         AfbPermission::new("acl:engy:client")
     };
 
-    // let create the energy manager now in order to share it with verbs/events
-    let energy_mgr= ManagerHandle::new(rootv4, power_api);
+
+    // Create the energy manager now in order to share session authorization it with verbs/events
+    let authorize_event = AfbEvent::new("authorize");
+    let energy_mgr= ManagerHandle::new(authorize_event);
+
+    // create backend API
+    let api = AfbApi::new(api).set_info(info).set_permission(permission).add_event(authorize_event)
+            .set_callback(Box::new(ApiUserData {
+            linky_api,
+            energy_mgr,
+        }));
+
 
     let config = BindingCfg {
         uid,
         meter_api,
         linky_api,
-        power_api,
         energy_mgr,
     };
-
-    // create backend API
-    let api = AfbApi::new(api).set_info(info).set_permission(permission)
-            .set_callback(Box::new(ApiUserData {
-            linky_api,
-            energy_mgr,
-        }));
 
     register_verbs(api, config)?;
 

@@ -292,9 +292,11 @@ fn conf_request_cb(
     args: &AfbData,
     ctx: &mut ConfRequestCtx,
 ) -> Result<(), AfbError> {
-    // update data_set data_set
     let jsonc = args.get::<JsoncObj>(0)?;
     afb_log_msg!(Debug, rqt, "update power conf={}", jsonc);
+
+    //automatically subscribe client to energy manager event
+    ctx.energy_mgr.subscribe_over_power(rqt)?;
 
     if let Ok(value) = jsonc.get::<i32>("imax") {
         ctx.energy_mgr.set_imax_cable(value)?;
@@ -315,6 +317,17 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     const CURRENTS: [&str; 4] = ["Amp-Total", "Amp-L1", "Amp-L2", "Amp-L3"];
     const POWER: [&str; 4] = ["Watt-Total", "Watt-L1", "Watt-L2", "Watt-L3"];
     const ENERGY: [&str; 2] = ["Energy-Session","Energy-Total"];
+
+    let authorize_verb = AfbVerb::new("authorized-energy")
+        .set_name("authorize")
+        .set_info("configure max power/current")
+        .set_sample("{'imax':10, 'pmax':22}")?
+        .set_callback(Box::new(ConfRequestCtx {
+            energy_mgr: config.energy_mgr
+        }))
+        .finalize()?;
+
+
 
     // Tension data_set from eastron modbus meter
     let tension_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Tension)));
@@ -340,7 +353,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             labels: &VOLTS,
             meter_api: config.meter_api,
             meter_prefix: "SDM72D",
-            energy_mgr: config.energy_mgr,
+            energy_mgr: config.energy_mgr
         }))
         .finalize()?;
 
@@ -368,7 +381,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             labels: &ENERGY,
             meter_api: config.meter_api,
             meter_prefix: "SDM72D",
-            energy_mgr: config.energy_mgr,
+            energy_mgr: config.energy_mgr
         }))
         .finalize()?;
 
@@ -396,7 +409,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             labels: &VOLTS,
             meter_api: config.meter_api,
             meter_prefix: "SDM72D",
-            energy_mgr: config.energy_mgr,
+            energy_mgr: config.energy_mgr
         }))
         .finalize()?;
 
@@ -448,16 +461,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .set_pattern(to_static_str(format!("{}/ADPS", config.linky_api)))
         .set_callback(Box::new(LinkyAdpsEvtCtrl {
             data_set: adps_set.clone(),
-            energy_mgr: config.energy_mgr,
             evt: adps_event,
-        }))
-        .finalize()?;
-
-    let conf_verb = AfbVerb::new("energy-config")
-        .set_name("configure")
-        .set_info("configure max power/current")
-        .set_sample("{'imax':10, 'pmax':22}")?
-        .set_callback(Box::new(ConfRequestCtx {
             energy_mgr: config.energy_mgr,
         }))
         .finalize()?;
@@ -483,7 +487,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     api.add_evt_handler(adps_handler);
     api.add_verb(adps_verb);
 
-    api.add_verb(conf_verb);
+    api.add_verb(authorize_verb);
 
     Ok(())
 }
