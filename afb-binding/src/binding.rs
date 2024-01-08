@@ -118,7 +118,6 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
             energy_mgr,
         }));
 
-
     let config = BindingCfg {
         uid,
         meter_api,

@@ -1,22 +1,22 @@
 #!/bin/bash
 
-export CONTROL_CONFIG_PATH=$DIRNAME
 export LD_LIBRARY_PATH=/usr/local/lib64
 pkill afb-energy
+cynagora-admin set '' 'HELLO' '' '*' yes
 clear
 
+# build test config dirname
 DIRNAME=`dirname $0`
-DIRNAME=`dirname $DIRNAME`
-BASENAME=`basename $DIRNAME -test`
-cd $DIRNAME/../$BASENAME
-PWD=`pwd`
+cd $DIRNAME/..
+CONFDIR=`pwd`/etc
 
-echo Starting EnergyMgr in debug mode config=$CONTROL_CONFIG_PATH
-cynagora-admin set '' 'HELLO' '' '*' yes
+DEVTOOL_PORT=1235
+echo Energy debug mode config=$CONFDIR/*.json port=$DEVTOOL_PORT
 
-afb-binder --name=afb-energy --port=1235 -v \
-  --config=$PWD/etc/binder-energy.json \
-  --config=$PWD/etc/binding-energy.json \
-  --config=$PWD/etc/binding-linky.json \
-  --config=$PWD/etc/binding-modbus.json \
+afb-binder --name=afb-energy --port=$DEVTOOL_PORT -v \
+  --config=$CONFDIR/binder-energy.json \
+  --config=$CONFDIR/binding-energy.json \
+  --config=$CONFDIR/binding-linky.json \
+  --config=$CONFDIR/binding-modbus.json \
+  --tracereq=all \
   $*

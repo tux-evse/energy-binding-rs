@@ -10,6 +10,6 @@
             "meter_api": "modbus",
             "tic": 1000, // tic in ms
             "amp": 1, // variation in % for notification
-        },
+        }
     ]
 }
