@@ -254,11 +254,13 @@ fn meter_request_cb(
         SensorAction::RESET => {
             match data_set.tag {
                 MeterTagSet::Energy => {}
-                _ => return afb_error!(
-                    rqt.get_uid().as_str(),
-                    "action reset not supported for tag:{:?}",
-                    data_set.tag
-                )
+                _ => {
+                    return afb_error!(
+                        rqt.get_uid().as_str(),
+                        "action reset not supported for tag:{:?}",
+                        data_set.tag
+                    )
+                }
             }
 
             // read meeter reset energy counter value
@@ -316,18 +318,16 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     const VOLTS: [&str; 4] = ["Volt-Avr", "Volt-L1", "Volt-L2", "Volt-L3"];
     const CURRENTS: [&str; 4] = ["Amp-Total", "Amp-L1", "Amp-L2", "Amp-L3"];
     const POWER: [&str; 4] = ["Watt-Total", "Watt-L1", "Watt-L2", "Watt-L3"];
-    const ENERGY: [&str; 2] = ["Energy-Session","Energy-Total"];
+    const ENERGY: [&str; 2] = ["Energy-Session", "Energy-Total"];
 
     let authorize_verb = AfbVerb::new("authorized-energy")
         .set_name("authorize")
         .set_info("configure max power/current")
         .set_sample("{'imax':10, 'pmax':22}")?
         .set_callback(Box::new(ConfRequestCtx {
-            energy_mgr: config.energy_mgr
+            energy_mgr: config.energy_mgr,
         }))
         .finalize()?;
-
-
 
     // Tension data_set from eastron modbus meter
     let tension_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Tension)));
@@ -353,7 +353,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             labels: &VOLTS,
             meter_api: config.meter_api,
             meter_prefix: "SDM72D",
-            energy_mgr: config.energy_mgr
+            energy_mgr: config.energy_mgr,
         }))
         .finalize()?;
 
@@ -381,7 +381,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             labels: &ENERGY,
             meter_api: config.meter_api,
             meter_prefix: "SDM72D",
-            energy_mgr: config.energy_mgr
+            energy_mgr: config.energy_mgr,
         }))
         .finalize()?;
 
@@ -409,7 +409,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             labels: &VOLTS,
             meter_api: config.meter_api,
             meter_prefix: "SDM72D",
-            energy_mgr: config.energy_mgr
+            energy_mgr: config.energy_mgr,
         }))
         .finalize()?;
 
@@ -442,29 +442,35 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Over current data_set from Linky meter
-    let adps_set = Rc::new(RefCell::new(MeterDataSet::default(
-        MeterTagSet::OverCurrent,
-    )));
-    let adps_event = AfbEvent::new("over-current");
-    let adps_verb = AfbVerb::new("over-current")
-        .set_name("adps")
-        .set_info("current over current(adps) in A")
-        .set_action(ACTIONS)?
-        .set_callback(Box::new(AdpsRequestCtx {
-            data_set: adps_set.clone(),
-            linky_api: config.linky_api,
-            adps_verb: "ADPS",
-            evt: adps_event,
-        }))
-        .finalize()?;
-    let adps_handler = AfbEvtHandler::new("linky-adps-evt")
-        .set_pattern(to_static_str(format!("{}/ADPS", config.linky_api)))
-        .set_callback(Box::new(LinkyAdpsEvtCtrl {
-            data_set: adps_set.clone(),
-            evt: adps_event,
-            energy_mgr: config.energy_mgr,
-        }))
-        .finalize()?;
+    if config.linky_api != "" {
+        let adps_set = Rc::new(RefCell::new(MeterDataSet::default(
+            MeterTagSet::OverCurrent,
+        )));
+        let adps_event = AfbEvent::new("over-current");
+        let adps_verb = AfbVerb::new("over-current")
+            .set_name("adps")
+            .set_info("current over current(adps) in A")
+            .set_action(ACTIONS)?
+            .set_callback(Box::new(AdpsRequestCtx {
+                data_set: adps_set.clone(),
+                linky_api: config.linky_api,
+                adps_verb: "ADPS",
+                evt: adps_event,
+            }))
+            .finalize()?;
+        let adps_handler = AfbEvtHandler::new("linky-adps-evt")
+            .set_pattern(to_static_str(format!("{}/ADPS", config.linky_api)))
+            .set_callback(Box::new(LinkyAdpsEvtCtrl {
+                data_set: adps_set.clone(),
+                evt: adps_event,
+                energy_mgr: config.energy_mgr,
+            }))
+            .finalize()?;
+
+        api.add_event(adps_event);
+        api.add_evt_handler(adps_handler);
+        api.add_verb(adps_verb);
+    }
 
     // register event and verbs
     api.add_event(tension_event);
@@ -482,10 +488,6 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     api.add_event(power_event);
     api.add_evt_handler(power_handler);
     api.add_verb(power_verb);
-
-    api.add_event(adps_event);
-    api.add_evt_handler(adps_handler);
-    api.add_verb(adps_verb);
 
     api.add_verb(authorize_verb);
 

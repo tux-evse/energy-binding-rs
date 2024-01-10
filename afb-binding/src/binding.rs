@@ -9,11 +9,11 @@
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  */
-use serde::{Deserialize, Serialize};
 use crate::prelude::*;
 use afbv4::prelude::*;
-use typesv4::prelude::*;
 use energy::prelude::*;
+use serde::{Deserialize, Serialize};
+use typesv4::prelude::*;
 
 pub(crate) fn to_static_str(value: String) -> &'static str {
     Box::leak(value.into_boxed_str())
@@ -38,20 +38,28 @@ pub struct BindingCfg {
     pub energy_mgr: &'static ManagerHandle,
 }
 
-
 struct ApiUserData {
     linky_api: &'static str,
     energy_mgr: &'static ManagerHandle,
 }
 impl AfbApiControls for ApiUserData {
     // the API is created and ready. At this level user may subcall api(s) declare as dependencies
-    fn start(&mut self, api: &AfbApi) ->  Result<(),AfbError> {
-        afb_log_msg!(Notice, api, "get linky max power api:{}/PCOUP", self.linky_api);
-        let response=AfbSubCall::call_sync(api, self.linky_api, "PCOUP", SensorAction::READ)?;
-        let data= response.get::<JsoncObj>(0)?.index::<i32>(0)?;
-        self.energy_mgr.set_power_subscription(data*1000)?;
+    fn start(&mut self, api: &AfbApi) -> Result<(), AfbError> {
+        // if linky_api defined subscribe to over current notification
+        if self.linky_api != "" {
+            afb_log_msg!(
+                Notice,
+                api,
+                "get linky max power api:{}/PCOUP",
+                self.linky_api
+            );
 
-        AfbSubCall::call_sync(api, self.linky_api, "ADPS", SensorAction::SUBSCRIBE)?;
+            let response = AfbSubCall::call_sync(api, self.linky_api, "PCOUP", SensorAction::READ)?;
+            let data = response.get::<JsoncObj>(0)?.index::<i32>(0)?;
+            self.energy_mgr.set_power_subscription(data * 1000)?;
+
+            AfbSubCall::call_sync(api, self.linky_api, "ADPS", SensorAction::SUBSCRIBE)?;
+        }
         Ok(())
     }
 
@@ -91,13 +99,21 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     let linky_api = if let Ok(value) = jconf.get::<String>("linky_api") {
         to_static_str(value)
     } else {
-        return afb_error!("energy-binding-config", "mandatory 'linky_api' not defined in binding json config")
+        afb_log_msg!(
+            Warning,
+            rootv4,
+            "optional 'linky_api' not defined in binding json config"
+        );
+        ""
     };
 
     let meter_api = if let Ok(value) = jconf.get::<String>("meter_api") {
         to_static_str(value)
     } else {
-        return afb_error!("energy-binding-config", "mandatory 'meter_api' not defined in binding json config")
+        return afb_error!(
+            "energy-binding-config",
+            "mandatory 'meter_api' not defined in binding json config"
+        );
     };
 
     let permission = if let Ok(value) = jconf.get::<String>("permission") {
@@ -106,14 +122,16 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
         AfbPermission::new("acl:engy:client")
     };
 
-
     // Create the energy manager now in order to share session authorization it with verbs/events
     let authorize_event = AfbEvent::new("authorize");
-    let energy_mgr= ManagerHandle::new(authorize_event);
+    let energy_mgr = ManagerHandle::new(authorize_event);
 
     // create backend API
-    let api = AfbApi::new(api).set_info(info).set_permission(permission).add_event(authorize_event)
-            .set_callback(Box::new(ApiUserData {
+    let api = AfbApi::new(api)
+        .set_info(info)
+        .set_permission(permission)
+        .add_event(authorize_event)
+        .set_callback(Box::new(ApiUserData {
             linky_api,
             energy_mgr,
         }));
@@ -129,8 +147,9 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
 
     // register api dependencies
     api.require_api(meter_api);
-    api.require_api(linky_api);
-    //api.require_api(power_api);
+    if linky_api != "" {
+        api.require_api(linky_api);
+    }
 
     Ok(api.finalize()?)
 }
