@@ -221,7 +221,7 @@ fn meter_request_cb(
 
                 let value = (data * 100.0).round() as i32;
                 match idx {
-                    0 => data_set.total = value,
+                    0 => data_set.total = value - data_set.start,
                     1 => data_set.l1 = value,
                     2 => data_set.l2 = value,
                     3 => data_set.l3 = value,

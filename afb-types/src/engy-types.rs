@@ -59,12 +59,7 @@ impl MeterDataSet {
         let value = (meter * 100.0).round() as i32;
         match phase {
             0 => {
-                // special reset counter
-                let value = if self.start > 0 {
-                    value - self.start
-                } else {
-                    value
-                };
+                let value= value - self.start;
                 if self.total * 100 / self.variation < value
                     || value > self.l3 * 100 / self.variation
                 {
