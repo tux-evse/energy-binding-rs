@@ -91,20 +91,8 @@ impl MeterDataSet {
     }
 }
 
-AfbDataConverter!(power_events, PowerEvent);
-#[derive(Serialize, Deserialize, Debug, Default)]
-#[serde(rename_all = "lowercase", tag = "action")]
-pub enum PowerEvent {
-    #[default]
-    STOP,
-    START,
-    IMAX(u32),
-    UNSET,
-}
-
 pub fn engy_registers() -> Result<(), AfbError> {
     // add binding custom converter
     meter_data_set::register()?;
-    power_events::register()?;
     Ok(())
 }
