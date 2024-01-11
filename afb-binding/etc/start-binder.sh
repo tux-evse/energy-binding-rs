@@ -18,5 +18,4 @@ afb-binder --name=afb-energy --port=$DEVTOOL_PORT -v \
   --config=$CONFDIR/binding-energy.json \
   --config=$CONFDIR/binding-linky.json \
   --config=$CONFDIR/binding-modbus.json \
-  --tracereq=all \
   $*

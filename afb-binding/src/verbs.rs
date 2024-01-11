@@ -275,9 +275,9 @@ fn meter_request_cb(
 
             let data = response.get::<f64>(0)?;
             data_set.start = (data * 100.0).round() as i32;
-            data_set.total = 0;
-            rqt.reply(AFB_NO_DATA, 0);
-        }
+            data_set.total = data_set.start;
+            data_set.tag = data_set.tag.clone();
+            rqt.reply(data_set.clone(), 0);        }
         _ => {
             return afb_error!(
                 rqt.get_uid().as_str(),
