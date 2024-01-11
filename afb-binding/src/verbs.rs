@@ -270,8 +270,10 @@ fn meter_request_cb(
                 [ctx.meter_prefix, ctx.labels[0]].join("/").as_str(),
                 SensorAction::READ,
             )?;
+
             let data = response.get::<f64>(0)?;
             data_set.start = (data * 100.0).round() as i32;
+            afb_log_msg!(Debug, rqt, "reset start={}", data_set.start);
         }
         _ => {
             return afb_error!(
@@ -320,7 +322,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     const POWER: [&str; 4] = ["Watt-Total", "Watt-L1", "Watt-L2", "Watt-L3"];
     const ENERGY: [&str; 2] = ["Energy-Session", "Energy-Total"];
 
-    const VB_CONFIG:&str="config";
+    const VB_CONFIG: &str = "config";
     let config_verb = AfbVerb::new("config-energy")
         .set_name(VB_CONFIG)
         .set_info("configure max power/current")
@@ -331,7 +333,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Tension data_set from eastron modbus meter
-    const VB_TENSION:&str="tension";
+    const VB_TENSION: &str = "tension";
     let tension_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Tension)));
     let tension_event = AfbEvent::new(VB_TENSION);
     let tension_verb = AfbVerb::new("tension-volts")
@@ -360,7 +362,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Energy data_set from eastron modbus meter
-    const VB_ENERGY:&str="energy";
+    const VB_ENERGY: &str = "energy";
     let energy_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Energy)));
     let energy_event = AfbEvent::new(VB_ENERGY);
     let energy_verb = AfbVerb::new("energy-watt")
@@ -389,7 +391,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Current data_set from eastron modbus meter
-    const VB_CURRENT:&str="current";
+    const VB_CURRENT: &str = "current";
     let current_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Current)));
     let current_event = AfbEvent::new(VB_CURRENT);
     let current_verb = AfbVerb::new("current-amps")
@@ -418,7 +420,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Power data_set from eastron modbus meter
-    const VB_POWER:&str="power";
+    const VB_POWER: &str = "power";
     let power_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Power)));
     let power_event = AfbEvent::new(VB_POWER);
     let power_verb = AfbVerb::new("power-Watt")
@@ -448,7 +450,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
 
     // Over current data_set from Linky meter
     if config.linky_api != "" {
-        const VB_LINKY:&str="adsp";
+        const VB_LINKY: &str = "adsp";
         let adps_set = Rc::new(RefCell::new(MeterDataSet::default(
             MeterTagSet::OverCurrent,
         )));
