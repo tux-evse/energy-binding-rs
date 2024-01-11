@@ -27,11 +27,11 @@ pub enum MeterTagSet {
 AfbDataConverter!(meter_data_set, MeterDataSet);
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct MeterDataSet {
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     pub start: i32,
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     pub variation: i32,
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     pub updated: bool,
     pub tag: MeterTagSet,
     pub total: i32,
