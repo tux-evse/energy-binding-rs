@@ -12,7 +12,7 @@
 
 use afbv4::prelude::*;
 use typesv4::prelude::*;
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 
 pub struct ManagerState {
     subscription_max: i32,
@@ -49,31 +49,30 @@ impl ManagerHandle {
         Box::leak(Box::new(handle))
     }
 
-    pub fn set_imax_cable(&self, amp_max: i32) -> Result<&Self, AfbError> {
-        let mut data_set = match self.data_set.try_borrow_mut() {
+    #[track_caller]
+    fn get_state(&self) -> Result<RefMut<'_, ManagerState>, AfbError> {
+        match self.data_set.try_borrow_mut() {
             Err(_) => return afb_error!("energy-manager-update", "fail to access &mut data_set"),
-            Ok(value) => value,
-        };
+            Ok(value) => Ok(value),
+        }
+    }
+
+    pub fn set_imax_cable(&self, amp_max: i32) -> Result<&Self, AfbError> {
+        let mut data_set = self.get_state()?;
 
         data_set.cable_max = amp_max;
         Ok(self)
     }
 
     pub fn set_power_backend(&self, kwh_max: i32) -> Result<&Self, AfbError> {
-        let mut data_set = match self.data_set.try_borrow_mut() {
-            Err(_) => return afb_error!("energy-manager-update", "fail to access &mut data_set"),
-            Ok(value) => value,
-        };
+        let mut data_set = self.get_state()?;
 
         data_set.backend_max = kwh_max;
         Ok(self)
     }
 
     pub fn set_power_subscription(&self, watt_max: i32) -> Result<&Self, AfbError> {
-        let mut data_set = match self.data_set.try_borrow_mut() {
-            Err(_) => return afb_error!("energy-manager-update", "fail to access &mut data_set"),
-            Ok(value) => value,
-        };
+        let mut data_set = self.get_state()?;
 
         data_set.subscription_max = watt_max;
         Ok(self)
@@ -97,10 +96,7 @@ impl ManagerHandle {
     }
 
     pub fn update_data_set(&self, data_new: &MeterDataSet) -> Result<(), AfbError> {
-        let data_set = match self.data_set.try_borrow() {
-            Err(_) => return afb_error!("energy-manager-update", "fail to access &data_set"),
-            Ok(value) => value,
-        };
+        let data_set = self.get_state()?;
 
         match data_new.tag {
             MeterTagSet::Current => {
