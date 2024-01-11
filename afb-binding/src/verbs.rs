@@ -243,11 +243,13 @@ fn meter_request_cb(
                     SensorAction::SUBSCRIBE,
                 )?;
             }
+            rqt.reply(AFB_NO_DATA, 0);
         }
 
         SensorAction::UNSUBSCRIBE => {
             afb_log_msg!(Notice, rqt, "Unsubscribe {}", ctx.evt.get_uid());
             ctx.evt.unsubscribe(rqt)?;
+            rqt.reply(AFB_NO_DATA, 0);
         }
 
         // use l1 to provide session power
@@ -273,7 +275,8 @@ fn meter_request_cb(
 
             let data = response.get::<f64>(0)?;
             data_set.start = (data * 100.0).round() as i32;
-            afb_log_msg!(Debug, rqt, "reset start={}", data_set.start);
+            data_set.total = 0;
+            rqt.reply(AFB_NO_DATA, 0);
         }
         _ => {
             return afb_error!(
@@ -282,7 +285,6 @@ fn meter_request_cb(
             )
         }
     }
-    rqt.reply(AFB_NO_DATA, 0);
     Ok(())
 }
 
