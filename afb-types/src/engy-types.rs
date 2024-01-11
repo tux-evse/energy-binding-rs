@@ -91,8 +91,19 @@ impl MeterDataSet {
     }
 }
 
+AfbDataConverter!(energy_actions, EnergyAction);
+#[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(rename_all = "lowercase", tag = "action")]
+pub enum EnergyAction {
+    #[default]
+    READ,
+    SUBSCRIBE,
+    UNSUBSCRIBE,
+    RESET,
+    INFO,
+}
 pub fn engy_registers() -> Result<(), AfbError> {
-    // add binding custom converter
     meter_data_set::register()?;
+    energy_actions::register()?;
     Ok(())
 }
