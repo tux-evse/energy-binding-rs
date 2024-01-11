@@ -96,31 +96,8 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
         ""
     };
 
-    let linky_api = if let Ok(value) = jconf.get::<String>("linky_api") {
-        to_static_str(value)
-    } else {
-        afb_log_msg!(
-            Warning,
-            rootv4,
-            "optional 'linky_api' not defined in binding json config"
-        );
-        ""
-    };
-
-    let meter_api = if let Ok(value) = jconf.get::<String>("meter_api") {
-        to_static_str(value)
-    } else {
-        return afb_error!(
-            "energy-binding-config",
-            "mandatory 'meter_api' not defined in binding json config"
-        );
-    };
-
-    let permission = if let Ok(value) = jconf.get::<String>("permission") {
-        AfbPermission::new(to_static_str(value))
-    } else {
-        AfbPermission::new("acl:engy:client")
-    };
+    let meter_api = to_static_str(jconf.get::<String>("meter_api")?);
+    let linky_api = to_static_str(jconf.get::<String>("linky_api")?);
 
     // Create the energy manager now in order to share session authorization it with verbs/events
     let authorize_event = AfbEvent::new("authorize");
@@ -129,7 +106,6 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     // create backend API
     let api = AfbApi::new(api)
         .set_info(info)
-        .set_permission(permission)
         .add_event(authorize_event)
         .set_callback(Box::new(ApiUserData {
             linky_api,
@@ -143,13 +119,16 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
         energy_mgr,
     };
 
-    register_verbs(api, config)?;
-
     // register api dependencies
     api.require_api(meter_api);
     if linky_api != "" {
         api.require_api(linky_api);
     }
+    if let Ok(value) = jconf.get::<String>("permission") {
+        api.set_permission(AfbPermission::new(to_static_str(value)));
+    };
+
+    register_verbs(api, config)?;
 
     Ok(api.finalize()?)
 }
