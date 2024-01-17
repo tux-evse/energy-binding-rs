@@ -7,8 +7,13 @@
         "/devtools:/usr/share/afb-ui-devtools/binder"
     ],
    "ws-server": [
+<<<<<<< Updated upstream
      "unix:/tmp/api/engy",
      "tcp:*:12351/engy"
+=======
+    "unix:/tmp/api/engy",
+    "tcp::12351/engy"
+>>>>>>> Stashed changes
    ],
     "monitoring": true,
 }

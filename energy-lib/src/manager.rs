@@ -36,13 +36,17 @@ impl ManagerState {
 pub struct ManagerHandle {
     data_set: RefCell<ManagerState>,
     event: &'static AfbEvent,
+    imax: i32,
+    pmax: i32,
 }
 
 impl ManagerHandle {
-    pub fn new(event: &'static AfbEvent) -> &'static mut Self {
+    pub fn new(event: &'static AfbEvent, imax: i32, pmax: i32) -> &'static mut Self {
         let handle = ManagerHandle {
             data_set: RefCell::new(ManagerState::default()),
             event,
+            imax,
+            pmax,
         };
 
         // return a static handle to prevent Rust from complaining when moving/sharing it
@@ -60,14 +64,22 @@ impl ManagerHandle {
     pub fn set_imax_cable(&self, amp_max: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
 
-        data_set.cable_max = amp_max;
+        if amp_max < self.imax {
+            data_set.cable_max = amp_max;
+        } else {
+            data_set.cable_max = self.imax;
+        }
         Ok(self)
     }
 
     pub fn set_power_backend(&self, kwh_max: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
 
-        data_set.backend_max = kwh_max;
+        if kwh_max < self.pmax {
+            data_set.backend_max = kwh_max;
+        } else {
+            data_set.backend_max = self.pmax;
+        }
         Ok(self)
     }
 
@@ -90,7 +102,7 @@ impl ManagerHandle {
         Ok(())
     }
 
-    pub fn subscribe_over_power(&self, rqt: &AfbRequest ) -> Result<(), AfbError> {
+    pub fn subscribe_over_power(&self, rqt: &AfbRequest) -> Result<(), AfbError> {
         self.event.subscribe(rqt)?;
         Ok(())
     }

@@ -23,6 +23,8 @@ pub struct BindingCfg {
     pub linky_api: &'static str,
     pub meter_api: &'static str,
     pub energy_mgr: &'static ManagerHandle,
+    pub imax: i32,
+    pub pmax: i32,
 }
 
 struct ApiUserData {
@@ -85,14 +87,18 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     let meter_api = to_static_str(jconf.get::<String>("meter_api")?);
     let linky_api = to_static_str(jconf.get::<String>("linky_api")?);
 
+    let linky_api = to_static_str(jconf.get::<String>("linky_api")?);
+
     // Create the energy manager now in order to share session authorization it with verbs/events
-    let authorize_event = AfbEvent::new("authorize");
-    let energy_mgr = ManagerHandle::new(authorize_event);
+    let energy_event = AfbEvent::new("energy");
+    let energy_mgr = ManagerHandle::new(energy_event, imax, pmax);
 
     // create backend API
     let api = AfbApi::new(api)
         .set_info(info)
         .add_event(authorize_event)
+        .set_permission(permission)
+        .add_event(energy_event)
         .set_callback(Box::new(ApiUserData {
             linky_api,
             energy_mgr,
@@ -103,6 +109,8 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
         meter_api,
         linky_api,
         energy_mgr,
+        pmax,
+        imax,
     };
 
     // register api dependencies
