@@ -8,8 +8,13 @@
     ],
    "ws-server": [
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
      "unix:/tmp/api/engy",
      "tcp:*:12351/engy"
+=======
+    "unix:/tmp/api/engy",
+    "tcp::12351/engy"
+>>>>>>> Stashed changes
 =======
     "unix:/tmp/api/engy",
     "tcp::12351/engy"
