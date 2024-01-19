@@ -26,8 +26,8 @@ pub enum MeterTagSet {
 AfbDataConverter!(config_data_set, EngyConfSet);
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct EngyConfSet {
-    pub backend_max: i32,
-    pub cable_max: i32,
+    pub pmax: i32,
+    pub imax: i32,
 }
 
 // all meter in 00.A value

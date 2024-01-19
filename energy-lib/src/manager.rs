@@ -16,9 +16,9 @@ use std::cell::{RefCell, RefMut};
 
 pub struct ManagerState {
     subscription_max: i32,
-    backend_max: i32,
+    pmax: i32,
     tension_max: i32,
-    cable_max: i32,
+    imax: i32,
 }
 
 impl ManagerState {
@@ -26,8 +26,8 @@ impl ManagerState {
         // Warning: unit are value*100
         ManagerState {
             subscription_max: 900,
-            backend_max: 900,
-            cable_max: 900,
+            pmax: 900,
+            imax: 900,
             tension_max: 25000,
         }
     }
@@ -65,8 +65,8 @@ impl ManagerHandle {
     pub fn get_config(&self) -> Result<EngyConfSet, AfbError> {
         let data_set = self.get_state()?;
         Ok(EngyConfSet {
-            backend_max: data_set.backend_max,
-            cable_max: data_set.cable_max,
+            pmax: data_set.pmax,
+            imax: data_set.imax,
         })
     }
 
@@ -74,9 +74,9 @@ impl ManagerHandle {
         let mut data_set = self.get_state()?;
 
         if amp_max!= 0 && amp_max < self.imax {
-            data_set.cable_max = amp_max;
+            data_set.imax = amp_max;
         } else {
-            data_set.cable_max = self.imax;
+            data_set.imax = self.imax;
         }
         Ok(self)
     }
@@ -85,9 +85,9 @@ impl ManagerHandle {
         let mut data_set = self.get_state()?;
 
         if kwh_max != 0 && kwh_max < self.pmax {
-            data_set.backend_max = kwh_max;
+            data_set.pmax = kwh_max;
         } else {
-            data_set.backend_max = self.pmax;
+            data_set.pmax = self.pmax;
         }
         Ok(self)
     }
@@ -121,11 +121,11 @@ impl ManagerHandle {
 
         match data_new.tag {
             MeterTagSet::Current => {
-                if data_new.l1 > data_set.cable_max
-                    || data_new.l2 > data_set.cable_max
-                    || data_new.l3 > data_set.cable_max
+                if data_new.l1 > data_set.imax
+                    || data_new.l2 > data_set.imax
+                    || data_new.l3 > data_set.imax
                 {
-                    self.notify_over_power(&data_new.tag, data_set.cable_max)?;
+                    self.notify_over_power(&data_new.tag, data_set.imax)?;
                 }
             }
             MeterTagSet::Tension => {
@@ -133,7 +133,7 @@ impl ManagerHandle {
                     || data_new.l2 > data_set.tension_max
                     || data_new.l3 > data_set.tension_max
                 {
-                    self.notify_over_power(&data_new.tag, data_set.cable_max)?;
+                    self.notify_over_power(&data_new.tag, data_set.imax)?;
                 }
             }
             MeterTagSet::Power => {
@@ -143,11 +143,11 @@ impl ManagerHandle {
                 {
                     self.notify_over_power(&data_new.tag, data_set.subscription_max)?;
                 }
-                if data_new.l1 > data_set.backend_max
-                    || data_new.l2 > data_set.backend_max
-                    || data_new.l3 > data_set.backend_max
+                if data_new.l1 > data_set.pmax
+                    || data_new.l2 > data_set.pmax
+                    || data_new.l3 > data_set.pmax
                 {
-                    self.notify_over_power(&data_new.tag, data_set.backend_max)?;
+                    self.notify_over_power(&data_new.tag, data_set.pmax)?;
                 }
             }
             MeterTagSet::OverCurrent => {

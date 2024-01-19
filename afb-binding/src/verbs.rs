@@ -305,8 +305,8 @@ fn conf_request_cb(
     //automatically subscribe client to energy manager event
     ctx.energy_mgr.subscribe_over_power(rqt)?;
 
-    ctx.energy_mgr.set_imax_cable(config.cable_max)?;
-    ctx.energy_mgr.set_power_backend(config.backend_max)?;
+    ctx.energy_mgr.set_imax_cable(config.imax)?;
+    ctx.energy_mgr.set_power_backend(config.pmax)?;
 
     rqt.reply(ctx.energy_mgr.get_config()?, 0);
     Ok(())
