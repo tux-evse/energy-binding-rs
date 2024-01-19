@@ -299,21 +299,16 @@ fn conf_request_cb(
     args: &AfbData,
     ctx: &mut ConfRequestCtx,
 ) -> Result<(), AfbError> {
-    let jsonc = args.get::<JsoncObj>(0)?;
-    afb_log_msg!(Debug, rqt, "update power conf={}", jsonc);
+    let config = args.get::<&EngyConfSet>(0)?;
+    afb_log_msg!(Debug, rqt, "update energy conf={:?}", config);
 
     //automatically subscribe client to energy manager event
     ctx.energy_mgr.subscribe_over_power(rqt)?;
 
-    if let Ok(value) = jsonc.get::<i32>("imax") {
-        ctx.energy_mgr.set_imax_cable(value)?;
-    }
+    ctx.energy_mgr.set_imax_cable(config.cable_max)?;
+    ctx.energy_mgr.set_power_backend(config.backend_max)?;
 
-    if let Ok(value) = jsonc.get::<i32>("pmax") {
-        ctx.energy_mgr.set_power_backend(value)?;
-    }
-
-    rqt.reply(AFB_NO_DATA, 0);
+    rqt.reply(ctx.energy_mgr.get_config()?, 0);
     Ok(())
 }
 

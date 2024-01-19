@@ -61,10 +61,19 @@ impl ManagerHandle {
         }
     }
 
+    #[track_caller]
+    pub fn get_config(&self) -> Result<EngyConfSet, AfbError> {
+        let data_set = self.get_state()?;
+        Ok(EngyConfSet {
+            backend_max: data_set.backend_max,
+            cable_max: data_set.cable_max,
+        })
+    }
+
     pub fn set_imax_cable(&self, amp_max: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
 
-        if amp_max < self.imax {
+        if amp_max!= 0 && amp_max < self.imax {
             data_set.cable_max = amp_max;
         } else {
             data_set.cable_max = self.imax;
@@ -75,7 +84,7 @@ impl ManagerHandle {
     pub fn set_power_backend(&self, kwh_max: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
 
-        if kwh_max < self.pmax {
+        if kwh_max != 0 && kwh_max < self.pmax {
             data_set.backend_max = kwh_max;
         } else {
             data_set.backend_max = self.pmax;

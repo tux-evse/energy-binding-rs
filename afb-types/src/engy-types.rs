@@ -23,7 +23,14 @@ pub enum MeterTagSet {
     Unset,
 }
 
-// hole meter in 00.A value
+AfbDataConverter!(config_data_set, EngyConfSet);
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct EngyConfSet {
+    pub backend_max: i32,
+    pub cable_max: i32,
+}
+
+// all meter in 00.A value
 AfbDataConverter!(meter_data_set, MeterDataSet);
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct MeterDataSet {
@@ -104,6 +111,7 @@ pub enum EnergyAction {
 }
 pub fn engy_registers() -> Result<(), AfbError> {
     meter_data_set::register()?;
+    config_data_set::register()?;
     energy_actions::register()?;
     Ok(())
 }
