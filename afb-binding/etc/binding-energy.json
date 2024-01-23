@@ -6,7 +6,6 @@
             "path": "/usr/redpesk/energy-binding-rs/lib/libafb_energy.so",
             "info": "set/get api",
             "permission": "acl:engy",
-            "linky_api": "linky",
             "meter_api": "modbus",
             "tic": 1000, // tic in ms
             "amp": 1, // variation in % for notification
