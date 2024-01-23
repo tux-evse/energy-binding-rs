@@ -17,6 +17,5 @@ echo Energy debug mode config=$CONFDIR/*.json port=$DEVTOOL_PORT
 afb-binder --name=afb-energy --port=$DEVTOOL_PORT -v \
   --config=$CONFDIR/binder-energy.json \
   --config=$CONFDIR/binding-energy.json \
-  --config=$CONFDIR/binding-linky.json \
   --config=$CONFDIR/binding-modbus.json \
   $*
