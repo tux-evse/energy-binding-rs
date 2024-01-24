@@ -66,7 +66,7 @@ impl MeterDataSet {
         let value = (meter * 100.0).round() as i32;
         match phase {
             0 => {
-                let value= value - self.start;
+                let value = value - self.start;
                 if self.total * 100 / self.variation < value
                     || value > self.l3 * 100 / self.variation
                 {
@@ -109,9 +109,45 @@ pub enum EnergyAction {
     RESET,
     INFO,
 }
+
+AfbDataConverter!(energy_state, EnergyState);
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct EnergyState {
+    #[serde(skip)]
+    pub subscription_max: i32,
+    #[serde(skip)]
+    pub tension_max: i32,
+    #[serde(skip)]
+    pub imax: i32,
+    #[serde(skip)]
+    pub pmax: i32,
+    pub session: i32,
+    pub total: i32,
+    pub current: i32,
+    pub tension: i32,
+    pub power: i32,
+}
+
+impl EnergyState {
+    pub fn default() -> Self {
+        EnergyState {
+            subscription_max: 0,
+            imax: 0,
+            pmax: 0,
+            tension_max: 0,
+            session: 0,
+            total: 0,
+            current: 0,
+            tension: 0,
+            power: 0,
+        }
+    }
+}
+
 pub fn engy_registers() -> Result<(), AfbError> {
     meter_data_set::register()?;
     config_data_set::register()?;
     energy_actions::register()?;
+    energy_state::register()?;
     Ok(())
 }

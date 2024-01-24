@@ -23,6 +23,18 @@ struct LinkyEvtCtx {
     evt: &'static AfbEvent,
 }
 
+struct TimerCtx {
+    mgr: &'static ManagerHandle,
+    evt: &'static AfbEvent,
+}
+// send charging state every tic ms.
+AfbTimerRegister!(TimerCtrl, timer_callback, TimerCtx);
+fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &mut TimerCtx) -> Result<(), AfbError> {
+    let state = ctx.mgr.check_state()?;
+    ctx.evt.push(state.clone());
+    Ok(())
+}
+
 AfbEventRegister!(LinkyAdpsEvtCtrl, evt_linky_cb, LinkyEvtCtx);
 fn evt_linky_cb(_evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyEvtCtx) -> Result<(), AfbError> {
     let mut data_set = match ctx.data_set.try_borrow_mut() {
@@ -278,7 +290,8 @@ fn meter_request_cb(
             data_set.total = 0;
 
             data_set.tag = data_set.tag.clone();
-            rqt.reply(data_set.clone(), 0);        }
+            rqt.reply(data_set.clone(), 0);
+        }
         _ => {
             return afb_error!(
                 rqt.get_uid().as_str(),
@@ -312,6 +325,41 @@ fn conf_request_cb(
     Ok(())
 }
 
+struct StateRequestCtx {
+    mgr: &'static ManagerHandle,
+    evt: &'static AfbEvent,
+}
+AfbVerbRegister!(StateRequestVerb, state_request_cb, StateRequestCtx);
+fn state_request_cb(
+    rqt: &AfbRequest,
+    args: &AfbData,
+    ctx: &mut StateRequestCtx,
+) -> Result<(), AfbError> {
+
+    match args.get::<&EnergyAction>(0)? {
+        EnergyAction::READ => {
+            let data_set = ctx.mgr.check_state()?;
+            rqt.reply(data_set.clone(), 0);
+        }
+
+        EnergyAction::SUBSCRIBE => {
+            afb_log_msg!(Notice, rqt, "Subscribe {}", ctx.evt.get_uid());
+            ctx.evt.subscribe(rqt)?;
+            rqt.reply(AFB_NO_DATA, 0);
+        }
+
+        EnergyAction::UNSUBSCRIBE => {
+            afb_log_msg!(Notice, rqt, "Unsubscribe {}", ctx.evt.get_uid());
+            ctx.evt.unsubscribe(rqt)?;
+            rqt.reply(AFB_NO_DATA, 0);
+        }
+
+        _ => return afb_error! ("energy-state-action", "unsupported action should be (read|subscribe|unsubscribe)")
+    }
+    Ok(())
+}
+
+
 pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(), AfbError> {
     const ACTIONS: &str = "['read','subscribe','unsubscribe']";
     const RESET: &str = "['read','subscribe','unsubscribe','reset']";
@@ -319,6 +367,26 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     const CURRENTS: [&str; 4] = ["Amp-Total", "Amp-L1", "Amp-L2", "Amp-L3"];
     const POWER: [&str; 4] = ["Watt-Total", "Watt-L1", "Watt-L2", "Watt-L3"];
     const ENERGY: [&str; 2] = ["Energy-Session", "Energy-Total"];
+
+    let state_event = AfbEvent::new("state");
+    AfbTimer::new("tic-timer")
+        .set_period(config.tic)
+        .set_decount(0)
+        .set_callback(Box::new(TimerCtx {
+            mgr: config.energy_mgr,
+            evt: state_event,
+        }))
+        .start()?;
+
+    let state_verb = AfbVerb::new("charging-state")
+        .set_name("state")
+        .set_info("current charging state")
+        .set_action("['read','subscribe','unsubscribe']")?
+        .set_callback(Box::new(StateRequestCtx {
+            mgr: config.energy_mgr,
+            evt: state_event,
+        }))
+        .finalize()?;
 
     const VB_CONFIG: &str = "config";
     let config_verb = AfbVerb::new("config-energy")
@@ -477,6 +545,9 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         api.add_evt_handler(adps_handler);
         api.add_verb(adps_verb);
     }
+
+    api.add_event(state_event);
+    api.add_verb(state_verb);
 
     // register event and verbs
     api.add_event(tension_event);

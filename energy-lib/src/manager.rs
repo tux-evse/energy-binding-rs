@@ -12,29 +12,10 @@
 
 use afbv4::prelude::*;
 use typesv4::prelude::*;
-use std::cell::{RefCell, RefMut};
-
-pub struct ManagerState {
-    subscription_max: i32,
-    pmax: i32,
-    tension_max: i32,
-    imax: i32,
-}
-
-impl ManagerState {
-    pub fn default() -> Self {
-        // Warning: unit are value*100
-        ManagerState {
-            subscription_max: 900,
-            pmax: 900,
-            imax: 900,
-            tension_max: 25000,
-        }
-    }
-}
+use std::cell::{RefCell, RefMut, Ref};
 
 pub struct ManagerHandle {
-    data_set: RefCell<ManagerState>,
+    data_set: RefCell<EnergyState>,
     event: &'static AfbEvent,
     imax: i32,
     pmax: i32,
@@ -43,7 +24,7 @@ pub struct ManagerHandle {
 impl ManagerHandle {
     pub fn new(event: &'static AfbEvent, imax: i32, pmax: i32) -> &'static mut Self {
         let handle = ManagerHandle {
-            data_set: RefCell::new(ManagerState::default()),
+            data_set: RefCell::new(EnergyState::default()),
             event,
             imax,
             pmax,
@@ -54,9 +35,17 @@ impl ManagerHandle {
     }
 
     #[track_caller]
-    fn get_state(&self) -> Result<RefMut<'_, ManagerState>, AfbError> {
+    pub fn get_state(&self) -> Result<RefMut<'_, EnergyState>, AfbError> {
         match self.data_set.try_borrow_mut() {
             Err(_) => return afb_error!("energy-manager-update", "fail to access &mut data_set"),
+            Ok(value) => Ok(value),
+        }
+    }
+
+    #[track_caller]
+    pub fn check_state(&self) -> Result<Ref<'_, EnergyState>, AfbError> {
+        match self.data_set.try_borrow() {
+            Err(_) => return afb_error!("energy-manager-state", "fail to access &data_set"),
             Ok(value) => Ok(value),
         }
     }
@@ -117,10 +106,11 @@ impl ManagerHandle {
     }
 
     pub fn update_data_set(&self, data_new: &MeterDataSet) -> Result<(), AfbError> {
-        let data_set = self.get_state()?;
+        let mut data_set = self.get_state()?;
 
         match data_new.tag {
             MeterTagSet::Current => {
+                data_set.current= data_new.total;
                 if data_new.l1 > data_set.imax
                     || data_new.l2 > data_set.imax
                     || data_new.l3 > data_set.imax
@@ -129,6 +119,7 @@ impl ManagerHandle {
                 }
             }
             MeterTagSet::Tension => {
+                data_set.tension= data_new.total;
                 if data_new.l1 > data_set.tension_max
                     || data_new.l2 > data_set.tension_max
                     || data_new.l3 > data_set.tension_max
@@ -137,6 +128,7 @@ impl ManagerHandle {
                 }
             }
             MeterTagSet::Power => {
+                data_set.power= data_new.total;
                 if data_new.l1 > data_set.subscription_max
                     || data_new.l2 > data_set.subscription_max
                     || data_new.l3 > data_set.subscription_max

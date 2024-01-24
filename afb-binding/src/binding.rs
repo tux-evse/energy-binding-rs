@@ -25,6 +25,7 @@ pub struct BindingCfg {
     pub energy_mgr: &'static ManagerHandle,
     pub imax: i32,
     pub pmax: i32,
+    pub tic: u32,
 }
 
 struct ApiUserData {
@@ -113,6 +114,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     // Create the energy manager now in order to share session authorization it with verbs/events
     let energy_event = AfbEvent::new("energy");
     let energy_mgr = ManagerHandle::new(energy_event, imax, pmax);
+    let tic = jconf.get::<u32>("tic")?;
 
     // create backend API
     let api = AfbApi::new(api)
@@ -131,6 +133,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
         energy_mgr,
         pmax,
         imax,
+        tic,
     };
 
     // register api dependencies
