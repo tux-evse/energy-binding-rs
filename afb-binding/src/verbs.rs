@@ -67,9 +67,12 @@ fn adps_request_cb(
 ) -> Result<(), AfbError> {
     match args.get::<&EnergyAction>(0)? {
         EnergyAction::READ => {
+            if ctx.linky_api == "" {
+               return afb_error!("energy-adps-read", "no linky meter configure use 'subscribe'")
+            }
             let mut data_set = match ctx.data_set.try_borrow_mut() {
                 Err(_) => {
-                    return afb_error!("energy-LinkyAdps-update", "fail to access energy state")
+                    return afb_error!("energy-adps-read", "fail to access energy state")
                 }
                 Ok(value) => value,
             };
@@ -515,7 +518,6 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Over current data_set from Linky meter
-    if config.linky_api != "" {
         const VB_LINKY: &str = "adsp";
         let adps_set = Rc::new(RefCell::new(MeterDataSet::default(
             MeterTagSet::OverCurrent,
@@ -544,7 +546,6 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         api.add_event(adps_event);
         api.add_evt_handler(adps_handler);
         api.add_verb(adps_verb);
-    }
 
     api.add_event(state_event);
     api.add_verb(state_verb);
