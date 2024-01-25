@@ -12,7 +12,7 @@
             "modbus": {
                 "uid": "Eastron-SDM72D",
                 "info": "Three Phase Four Wire Energy Meter ",
-                "uri": "tty://dev/ttyUSB_RS485:19200",
+                "uri": "tty://dev/ttyUSB_RS485:9600",
                 "prefix": "SDM72D",
                 "slaveid": 1,
                 "timeout": 250,
