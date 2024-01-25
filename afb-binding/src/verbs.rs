@@ -30,8 +30,8 @@ struct TimerCtx {
 // send charging state every tic ms.
 AfbTimerRegister!(TimerCtrl, timer_callback, TimerCtx);
 fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &mut TimerCtx) -> Result<(), AfbError> {
-    let state = ctx.mgr.check_state()?;
-    ctx.evt.push(state.clone());
+    let state = ctx.mgr.clone_state()?;
+    ctx.evt.push(state);
     Ok(())
 }
 
@@ -343,8 +343,8 @@ fn state_request_cb(
 ) -> Result<(), AfbError> {
     match args.get::<&EnergyAction>(0)? {
         EnergyAction::READ => {
-            let data_set = ctx.mgr.check_state()?;
-            rqt.reply(data_set.clone(), 0);
+            let state = ctx.mgr.clone_state()?;
+            rqt.reply(state, 0);
         }
 
         EnergyAction::SUBSCRIBE => {

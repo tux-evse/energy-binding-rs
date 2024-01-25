@@ -11,6 +11,7 @@
  */
 use afbv4::prelude::*;
 use serde::{Deserialize, Serialize};
+use  std::time::Duration;
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub enum MeterTagSet {
@@ -120,6 +121,7 @@ pub struct EnergyState {
     #[serde(skip)]
     pub imax: i32,
     #[serde(skip)]
+    pub timestamp: Duration,
     pub pmax: i32,
     pub session: i32,
     pub total: i32,
@@ -140,6 +142,7 @@ impl EnergyState {
             current: 0,
             tension: 0,
             power: 0,
+            timestamp: Duration::new(0,0),
         }
     }
 }

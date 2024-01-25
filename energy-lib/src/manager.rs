@@ -11,8 +11,9 @@
  */
 
 use afbv4::prelude::*;
+use std::cell::{RefCell, RefMut};
+use std::time::SystemTime;
 use typesv4::prelude::*;
-use std::cell::{RefCell, RefMut, Ref};
 
 pub struct ManagerHandle {
     data_set: RefCell<EnergyState>,
@@ -43,11 +44,15 @@ impl ManagerHandle {
     }
 
     #[track_caller]
-    pub fn check_state(&self) -> Result<Ref<'_, EnergyState>, AfbError> {
-        match self.data_set.try_borrow() {
-            Err(_) => return afb_error!("energy-manager-state", "fail to access &data_set"),
-            Ok(value) => Ok(value),
-        }
+    pub fn clone_state(&self) -> Result<EnergyState, AfbError> {
+        let unix_time = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+            Ok(value) => value,
+            Err(_) => return afb_error!("energy-check-state", "system time before UNIX EPOCH!"),
+        };
+
+        let mut data_set = self.get_state()?;
+        data_set.timestamp = unix_time;
+        Ok(data_set.clone())
     }
 
     #[track_caller]
@@ -62,7 +67,7 @@ impl ManagerHandle {
     pub fn set_imax_cable(&self, amp_max: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
 
-        if amp_max!= 0 && amp_max < self.imax {
+        if amp_max != 0 && amp_max < self.imax {
             data_set.imax = amp_max;
         } else {
             data_set.imax = self.imax;
@@ -110,7 +115,7 @@ impl ManagerHandle {
 
         match data_new.tag {
             MeterTagSet::Current => {
-                data_set.current= data_new.total;
+                data_set.current = data_new.total;
                 if data_new.l1 > data_set.imax
                     || data_new.l2 > data_set.imax
                     || data_new.l3 > data_set.imax
@@ -119,7 +124,7 @@ impl ManagerHandle {
                 }
             }
             MeterTagSet::Tension => {
-                data_set.tension= data_new.total;
+                data_set.tension = data_new.total;
                 if data_new.l1 > data_set.tension_max
                     || data_new.l2 > data_set.tension_max
                     || data_new.l3 > data_set.tension_max
@@ -128,7 +133,7 @@ impl ManagerHandle {
                 }
             }
             MeterTagSet::Power => {
-                data_set.power= data_new.total;
+                data_set.power = data_new.total;
                 if data_new.l1 > data_set.subscription_max
                     || data_new.l2 > data_set.subscription_max
                     || data_new.l3 > data_set.subscription_max
