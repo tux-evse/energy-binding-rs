@@ -121,8 +121,9 @@ pub struct EnergyState {
     #[serde(skip)]
     pub imax: i32,
     #[serde(skip)]
-    pub timestamp: Duration,
     pub pmax: i32,
+    // public data
+    pub timestamp: Duration,
     pub session: i32,
     pub total: i32,
     pub current: i32,
