@@ -68,12 +68,13 @@ fn adps_request_cb(
     match args.get::<&EnergyAction>(0)? {
         EnergyAction::READ => {
             if ctx.linky_api == "" {
-               return afb_error!("energy-adps-read", "no linky meter configure use 'subscribe'")
+                return afb_error!(
+                    "energy-adps-read",
+                    "no linky meter configure use 'subscribe'"
+                );
             }
             let mut data_set = match ctx.data_set.try_borrow_mut() {
-                Err(_) => {
-                    return afb_error!("energy-adps-read", "fail to access energy state")
-                }
+                Err(_) => return afb_error!("energy-adps-read", "fail to access energy state"),
                 Ok(value) => value,
             };
 
@@ -101,12 +102,14 @@ fn adps_request_cb(
         }
 
         EnergyAction::SUBSCRIBE => {
-            AfbSubCall::call_sync(
-                rqt.get_api(),
-                ctx.linky_api,
-                ctx.adps_verb,
-                EnergyAction::SUBSCRIBE,
-            )?;
+            if ctx.linky_api == "" {
+                AfbSubCall::call_sync(
+                    rqt.get_api(),
+                    ctx.linky_api,
+                    ctx.adps_verb,
+                    EnergyAction::SUBSCRIBE,
+                )?;
+            }
             ctx.evt.subscribe(rqt)?;
             rqt.reply(AFB_NO_DATA, 0);
         }
@@ -338,7 +341,6 @@ fn state_request_cb(
     args: &AfbData,
     ctx: &mut StateRequestCtx,
 ) -> Result<(), AfbError> {
-
     match args.get::<&EnergyAction>(0)? {
         EnergyAction::READ => {
             let data_set = ctx.mgr.check_state()?;
@@ -357,11 +359,15 @@ fn state_request_cb(
             rqt.reply(AFB_NO_DATA, 0);
         }
 
-        _ => return afb_error! ("energy-state-action", "unsupported action should be (read|subscribe|unsubscribe)")
+        _ => {
+            return afb_error!(
+                "energy-state-action",
+                "unsupported action should be (read|subscribe|unsubscribe)"
+            )
+        }
     }
     Ok(())
 }
-
 
 pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(), AfbError> {
     const ACTIONS: &str = "['read','subscribe','unsubscribe']";
@@ -518,34 +524,34 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Over current data_set from Linky meter
-        const VB_LINKY: &str = "adsp";
-        let adps_set = Rc::new(RefCell::new(MeterDataSet::default(
-            MeterTagSet::OverCurrent,
-        )));
-        let adps_event = AfbEvent::new(VB_LINKY);
-        let adps_verb = AfbVerb::new("over-current")
-            .set_name(VB_LINKY)
-            .set_info("current over current(adps) in A")
-            .set_action(ACTIONS)?
-            .set_callback(Box::new(AdpsRequestCtx {
-                data_set: adps_set.clone(),
-                linky_api: config.linky_api,
-                adps_verb: "ADPS",
-                evt: adps_event,
-            }))
-            .finalize()?;
-        let adps_handler = AfbEvtHandler::new(VB_LINKY)
-            .set_pattern(to_static_str(format!("{}/ADPS", config.linky_api)))
-            .set_callback(Box::new(LinkyAdpsEvtCtrl {
-                data_set: adps_set.clone(),
-                evt: adps_event,
-                energy_mgr: config.energy_mgr,
-            }))
-            .finalize()?;
+    const VB_LINKY: &str = "adsp";
+    let adps_set = Rc::new(RefCell::new(MeterDataSet::default(
+        MeterTagSet::OverCurrent,
+    )));
+    let adps_event = AfbEvent::new(VB_LINKY);
+    let adps_verb = AfbVerb::new("over-current")
+        .set_name(VB_LINKY)
+        .set_info("current over current(adps) in A")
+        .set_action(ACTIONS)?
+        .set_callback(Box::new(AdpsRequestCtx {
+            data_set: adps_set.clone(),
+            linky_api: config.linky_api,
+            adps_verb: "ADPS",
+            evt: adps_event,
+        }))
+        .finalize()?;
+    let adps_handler = AfbEvtHandler::new(VB_LINKY)
+        .set_pattern(to_static_str(format!("{}/ADPS", config.linky_api)))
+        .set_callback(Box::new(LinkyAdpsEvtCtrl {
+            data_set: adps_set.clone(),
+            evt: adps_event,
+            energy_mgr: config.energy_mgr,
+        }))
+        .finalize()?;
 
-        api.add_event(adps_event);
-        api.add_evt_handler(adps_handler);
-        api.add_verb(adps_verb);
+    api.add_event(adps_event);
+    api.add_evt_handler(adps_handler);
+    api.add_verb(adps_verb);
 
     api.add_event(state_event);
     api.add_verb(state_verb);
