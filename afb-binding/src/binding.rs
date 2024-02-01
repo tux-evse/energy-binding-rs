@@ -14,10 +14,6 @@ use afbv4::prelude::*;
 use energy::prelude::*;
 use typesv4::prelude::*;
 
-pub(crate) fn to_static_str(value: String) -> &'static str {
-    Box::leak(value.into_boxed_str())
-}
-
 pub struct BindingCfg {
     pub uid: &'static str,
     pub linky_api: &'static str,
