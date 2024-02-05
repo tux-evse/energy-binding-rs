@@ -14,6 +14,7 @@ use afbv4::prelude::*;
 use std::cell::{RefCell, RefMut};
 use std::time::SystemTime;
 use typesv4::prelude::*;
+use std::cmp;
 
 pub struct ManagerHandle {
     data_set: RefCell<EnergyState>,
@@ -124,7 +125,11 @@ impl ManagerHandle {
                 }
             }
             MeterTagSet::Tension => {
-                data_set.tension = data_new.l1;
+
+                let mut tempo_max;
+                tempo_max = cmp::max (data_new.l1,data_new.l2);
+                data_set.tension = cmp::max (tempo_max,data_new.l3);
+
                 if data_new.l1 > data_set.tension_max
                     || data_new.l2 > data_set.tension_max
                     || data_new.l3 > data_set.tension_max
