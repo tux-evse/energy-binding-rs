@@ -117,6 +117,14 @@ impl ManagerHandle {
         match data_new.tag {
             MeterTagSet::Current => {
                 data_set.current = data_new.total;
+
+                afb_log_msg!(  //debug log, to be removed
+                    Notice,
+                    self.event,
+                    "current measurement :{}",
+                    data_set.current
+                );
+
                 if data_new.l1 > data_set.imax
                     || data_new.l2 > data_set.imax
                     || data_new.l3 > data_set.imax
@@ -128,7 +136,22 @@ impl ManagerHandle {
 
                 let mut tempo_max;
                 tempo_max = cmp::max (data_new.l1,data_new.l2);
+
+                afb_log_msg!(  //debug log, to be removed
+                    Notice,
+                    self.event,
+                    "max of L1 & L2 :{}",
+                    tempo_max
+                );
+
                 data_set.tension = cmp::max (tempo_max,data_new.l3);
+
+                afb_log_msg!(  //debug log, to be removed
+                    Notice,
+                    self.event,
+                    "max of L1 & L2 & L3 :{}",
+                    data_set.tension
+                );
 
                 if data_new.l1 > data_set.tension_max
                     || data_new.l2 > data_set.tension_max
