@@ -134,8 +134,7 @@ impl ManagerHandle {
             }
             MeterTagSet::Tension => {
 
-                let mut tempo_max;
-                tempo_max = cmp::max (data_new.l1,data_new.l2);
+                let mut tempo_max = cmp::max (data_new.l1,data_new.l2);
 
                 afb_log_msg!(  //debug log, to be removed
                     Notice,
@@ -153,12 +152,12 @@ impl ManagerHandle {
                     data_set.tension
                 );
 
-                if data_new.l1 > data_set.tension_max
-                    || data_new.l2 > data_set.tension_max
-                    || data_new.l3 > data_set.tension_max
-                {
-                    self.notify_over_power(&data_new.tag, data_set.imax)?;
-                }
+                // if data_new.l1 > data_set.tension_max
+                //     || data_new.l2 > data_set.tension_max
+                //     || data_new.l3 > data_set.tension_max
+                // {
+                //     self.notify_over_power(&data_new.tag, data_set.imax)?;
+                // }
             }
             MeterTagSet::Power => {
                 data_set.power = data_new.total;
