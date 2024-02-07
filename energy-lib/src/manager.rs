@@ -133,24 +133,18 @@ impl ManagerHandle {
                 }
             }
             MeterTagSet::Tension => {
+                data_set.tension = data_new.l3;
 
-                let mut tempo_max = cmp::max (data_new.l1,data_new.l2);
 
-                afb_log_msg!(  //debug log, to be removed
-                    Notice,
-                    self.event,
-                    "max of L1 & L2 :{}",
-                    tempo_max
-                );
+                // let mut tempo_max = cmp::max (data_new.l1,data_new.l2);
+                // data_set.tension = cmp::max (tempo_max,data_new.l3);
 
-                data_set.tension = cmp::max (tempo_max,data_new.l3);
-
-                afb_log_msg!(  //debug log, to be removed
-                    Notice,
-                    self.event,
-                    "max of L1 & L2 & L3 :{}",
-                    data_set.tension
-                );
+                // afb_log_msg!(  //debug log, to be removed
+                //     Notice,
+                //     self.event,
+                //     "max of L1 & L2 & L3 :{}",
+                //     data_set.tension
+                // );
 
                 // if data_new.l1 > data_set.tension_max
                 //     || data_new.l2 > data_set.tension_max
