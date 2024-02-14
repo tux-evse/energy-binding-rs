@@ -35,8 +35,8 @@ struct LinkyOverEvtCtx {
     evt: &'static AfbEvent,
 }
 
-AfbEventRegister!(LinkyOverEvtCtrl, evt_adps_cb, LinkyOverEvtCtx);
-fn evt_adps_cb(_evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyOverEvtCtx) -> Result<(), AfbError> {
+AfbEventRegister!(LinkyOverEvtCtrl, evt_iover_cb, LinkyOverEvtCtx);
+fn evt_iover_cb(_evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyOverEvtCtx) -> Result<(), AfbError> {
     let mut data_set = match ctx.data_set.try_borrow_mut() {
         Err(_) => return afb_error!("energy-LinkyAdps-update", "fail to access energy state"),
         Ok(value) => value,

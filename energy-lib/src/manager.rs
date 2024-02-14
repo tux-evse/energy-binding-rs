@@ -107,7 +107,7 @@ impl ManagerHandle {
     }
 
     // TBD fulup: make available current per phase smarter
-    pub fn check_avaliable_current(&self, data: &MeterDataSet) -> Result <i32, AfbError> {
+    pub fn check_avaliable_current(&self, data: &MeterDataSet) -> Result <u32, AfbError> {
         let data_set = self.get_state()?;
 
         let nb_phases = if data.total == data.l1 {
@@ -122,7 +122,7 @@ impl ManagerHandle {
         // never use more than 80% of available subscription power
         let remaining= (self.pmax*80)/100 - data.total;
         let iavail= remaining/data_set.volts/nb_phases;
-        Ok(iavail)
+        Ok(iavail as u32)
     }
 
     pub fn subscribe_over_power(&self, rqt: &AfbRequest) -> Result<(), AfbError> {
