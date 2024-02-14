@@ -58,8 +58,8 @@ struct LinkyAvailEvtCtx {
     data_set: Rc<RefCell<MeterDataSet>>,
     evt: &'static AfbEvent,
 }
-AfbEventRegister!(LinkyAvailEvtCtrl, evt_linky_cb, LinkyAvailEvtCtx);
-fn evt_linky_cb(_evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyAvailEvtCtx) -> Result<(), AfbError> {
+AfbEventRegister!(LinkyAvailEvtCtrl, evt_iavail_cb, LinkyAvailEvtCtx);
+fn evt_iavail_cb(_evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyAvailEvtCtx) -> Result<(), AfbError> {
     let mut data_set = match ctx.data_set.try_borrow_mut() {
         Err(_) => return afb_error!("energy-LinkyAvail-update", "fail to access energy state"),
         Ok(value) => value,
@@ -70,8 +70,8 @@ fn evt_linky_cb(_evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyAvailEvtCtx) 
         data_set.update(idx, value)?;
     }
     if data_set.updated {
-        ctx.energy_mgr.update_data_set(&data_set)?;
-        ctx.evt.push(data_set.clone());
+        let iavail= ctx.energy_mgr.check_avaliable_current(&data_set)?;
+        ctx.evt.push(iavail);
     }
     Ok(())
 }
