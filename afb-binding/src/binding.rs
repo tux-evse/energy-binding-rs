@@ -41,8 +41,10 @@ impl AfbApiControls for ApiUserData {
             );
 
             let response = AfbSubCall::call_sync(api, self.linky_api, "PCOUP", EnergyAction::READ)?;
-            let data = response.get::<JsoncObj>(0)?.index::<i32>(0)?;
-            self.energy_mgr.set_power_subscription(data * 1000)?;
+            let max_power = response.get::<JsoncObj>(0)?.index::<i32>(0)?;
+            let response = AfbSubCall::call_sync(api, self.linky_api, "URMS", EnergyAction::READ)?;
+            let cur_tension = response.get::<JsoncObj>(0)?.index::<i32>(0)?;
+            self.energy_mgr.set_power_subscription(max_power * 1000, cur_tension)?;
 
             AfbSubCall::call_sync(api, self.linky_api, "ADPS", EnergyAction::SUBSCRIBE)?;
         }
@@ -63,49 +65,15 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     // add binding custom converter
     engy_registers()?;
 
-    let uid = if let Ok(value) = jconf.get::<String>("uid") {
-        to_static_str(value)
-    } else {
-        "energy"
-    };
+    let uid =  jconf.default::<&'static str>("uid", "energy-mgr")?;
+    let api =  jconf.default::<&'static str>("api", uid)?;
+    let info =  jconf.default::<&'static str>("info", "")?;
 
-    let api = if let Ok(value) = jconf.get::<String>("api") {
-        to_static_str(value)
-    } else {
-        uid
-    };
+    let imax =  jconf.default::<i32>("imax", 32)?;
+    let pmax =  jconf.default::<i32>("pmax", 22)?;
 
-    let info = if let Ok(value) = jconf.get::<String>("info") {
-        to_static_str(value)
-    } else {
-        ""
-    };
-
-
-    let imax = if let Ok(value) = jconf.get::<i32>("imax") {
-        value
-    } else {
-        32
-    };
-
-    let pmax = if let Ok(value) = jconf.get::<i32>("pmax") {
-        value
-    } else {
-        22
-    };
-
-
-    let linky_api = if let Ok(value) = jconf.get::<String>("linky_api") {
-        to_static_str(value)
-    } else {
-        afb_log_msg!(
-            Warning,
-            rootv4,
-            "optional 'linky_api' not defined in binding json config"
-        );
-        ""
-    };
-    let meter_api = to_static_str(jconf.get::<String>("meter_api")?);
+    let linky_api =  jconf.default::<&'static str>("linky_api", "")?;
+    let meter_api =  jconf.default::<&'static str>("meter_api", "modbus")?;
 
     // Create the energy manager now in order to share session authorization it with verbs/events
     let energy_event = AfbEvent::new("energy");

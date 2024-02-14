@@ -65,30 +65,30 @@ impl MeterDataSet {
     // update data_set and set updated flag when total changes.
     pub fn update(&mut self, phase: usize, meter: f64) -> Result<(), AfbError> {
         let value = (meter * 100.0).round() as i32;
-        let variation = value*self.variation/100;
         match phase {
             0 => {
                 let value = value - self.start;
-                if self.total - variation < value || self.total + variation > value 
+                if self.total * 100 / self.variation < value
+                    || value > self.l3 * 100 / self.variation
                 {
                     self.total = value;
                     self.updated = true;
                 }
             }
             1 => {
-                if self.l1 - variation < value || self.l1 + variation > value 
+                if self.l1 * 100 / self.variation < value || value > self.l3 * 100 / self.variation
                 {
                     self.l1 = value;
                 }
             }
             2 => {
-                if self.l2 - variation < value || self.l2 + variation > value
+                if self.l2 * 100 / self.variation < value || value > self.l3 * 100 / self.variation
                 {
-                    self.l2 = value;
+                    self.l3 = value;
                 }
             }
             3 => {
-                if self.l3 - variation < value || self.l3 + variation > value
+                if self.l2 * 100 / self.variation < value || value > self.l3 * 100 / self.variation
                 {
                     self.l3 = value;
                 }
@@ -122,6 +122,7 @@ pub struct EnergyState {
     pub imax: i32,
     #[serde(skip)]
     pub pmax: i32,
+    pub volts: i32,
     // public data
     pub timestamp: Duration,
     pub session: i32,
@@ -137,6 +138,7 @@ impl EnergyState {
             subscription_max: 0,
             imax: 0,
             pmax: 0,
+            volts: 0,
             tension_max: 0,
             session: 0,
             total: 0,

@@ -14,7 +14,6 @@ use afbv4::prelude::*;
 use std::cell::{RefCell, RefMut};
 use std::time::SystemTime;
 use typesv4::prelude::*;
-use std::cmp;
 
 pub struct ManagerHandle {
     data_set: RefCell<EnergyState>,
@@ -87,10 +86,11 @@ impl ManagerHandle {
         Ok(self)
     }
 
-    pub fn set_power_subscription(&self, watt_max: i32) -> Result<&Self, AfbError> {
+    pub fn set_power_subscription(&self, watt_max: i32, volts: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
 
         data_set.subscription_max = watt_max;
+        data_set.volts = volts;
         Ok(self)
     }
 
@@ -104,6 +104,25 @@ impl ManagerHandle {
         );
         self.event.push(false);
         Ok(())
+    }
+
+    // TBD fulup: make available current per phase smarter
+    pub fn check_avaliable_current(&self, data: MeterDataSet) -> Result <i32, AfbError> {
+        let data_set = self.get_state()?;
+
+        let nb_phases = if data.total == data.l1 {
+            1
+        } else {
+            let mut phases= 1;
+            if data.l2 > 0 {phases= phases+1};
+            if data.l3 > 0 {phases= phases+1};
+            phases
+        };
+
+        // never use more than 80% of available subscription power
+        let remaining= (self.pmax*80)/100 - data.total;
+        let iavail= remaining/data_set.volts/nb_phases;
+        Ok(iavail)
     }
 
     pub fn subscribe_over_power(&self, rqt: &AfbRequest) -> Result<(), AfbError> {
@@ -125,11 +144,7 @@ impl ManagerHandle {
                 }
             }
             MeterTagSet::Tension => {
-
-                let mut tempo_max;
-                tempo_max = cmp::max (data_new.l1,data_new.l2);
-                data_set.tension = cmp::max (tempo_max,data_new.l3);
-
+                data_set.tension = data_new.l1;
                 if data_new.l1 > data_set.tension_max
                     || data_new.l2 > data_set.tension_max
                     || data_new.l3 > data_set.tension_max

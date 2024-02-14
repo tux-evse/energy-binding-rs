@@ -17,12 +17,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use typesv4::prelude::*;
 
-struct LinkyEvtCtx {
-    energy_mgr: &'static ManagerHandle,
-    data_set: Rc<RefCell<MeterDataSet>>,
-    evt: &'static AfbEvent,
-}
-
 struct TimerCtx {
     mgr: &'static ManagerHandle,
     evt: &'static AfbEvent,
@@ -35,35 +29,64 @@ fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &mut TimerCtx) -> Resul
     Ok(())
 }
 
-AfbEventRegister!(LinkyAdpsEvtCtrl, evt_linky_cb, LinkyEvtCtx);
-fn evt_linky_cb(_evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyEvtCtx) -> Result<(), AfbError> {
+struct LinkyOverEvtCtx {
+    energy_mgr: &'static ManagerHandle,
+    data_set: Rc<RefCell<MeterDataSet>>,
+    evt: &'static AfbEvent,
+}
+
+AfbEventRegister!(LinkyOverEvtCtrl, evt_adps_cb, LinkyOverEvtCtx);
+fn evt_adps_cb(_evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyOverEvtCtx) -> Result<(), AfbError> {
     let mut data_set = match ctx.data_set.try_borrow_mut() {
         Err(_) => return afb_error!("energy-LinkyAdps-update", "fail to access energy state"),
         Ok(value) => value,
     };
-    let jreply = args.get::<JsoncObj>(0)?;
-    for idx in 0..jreply.count()? {
-        let value = jreply.index::<f64>(idx)?;
+    let jargs = args.get::<JsoncObj>(0)?;
+    for idx in 0..jargs.count()? {
+        let value = jargs.index::<f64>(idx)?;
         data_set.update(idx, value)?;
     }
     if data_set.updated {
         ctx.energy_mgr.update_data_set(&data_set)?;
-        ctx.evt.broadcast(data_set.clone());
+        ctx.evt.push(data_set.clone());
     }
     Ok(())
 }
 
-struct AdpsRequestCtx {
+struct LinkyAvailEvtCtx {
+    energy_mgr: &'static ManagerHandle,
     data_set: Rc<RefCell<MeterDataSet>>,
-    linky_api: &'static str,
-    adps_verb: &'static str,
     evt: &'static AfbEvent,
 }
-AfbVerbRegister!(LinkyAdpsRequestVerb, adps_request_cb, AdpsRequestCtx);
+AfbEventRegister!(LinkyAvailEvtCtrl, evt_linky_cb, LinkyAvailEvtCtx);
+fn evt_linky_cb(_evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyAvailEvtCtx) -> Result<(), AfbError> {
+    let mut data_set = match ctx.data_set.try_borrow_mut() {
+        Err(_) => return afb_error!("energy-LinkyAvail-update", "fail to access energy state"),
+        Ok(value) => value,
+    };
+    let jargs = args.get::<JsoncObj>(0)?;
+    for idx in 0..jargs.count()? {
+        let value = jargs.index::<f64>(idx)?;
+        data_set.update(idx, value)?;
+    }
+    if data_set.updated {
+        ctx.energy_mgr.update_data_set(&data_set)?;
+        ctx.evt.push(data_set.clone());
+    }
+    Ok(())
+}
+
+struct LinkyRqtCtx {
+    data_set: Rc<RefCell<MeterDataSet>>,
+    linky_api: &'static str,
+    linky_verb: &'static str,
+    evt: &'static AfbEvent,
+}
+AfbVerbRegister!(LinkyRqtVerb, adps_request_cb, LinkyRqtCtx);
 fn adps_request_cb(
     rqt: &AfbRequest,
     args: &AfbData,
-    ctx: &mut AdpsRequestCtx,
+    ctx: &mut LinkyRqtCtx,
 ) -> Result<(), AfbError> {
     match args.get::<&EnergyAction>(0)? {
         EnergyAction::READ => {
@@ -81,13 +104,13 @@ fn adps_request_cb(
             let response = AfbSubCall::call_sync(
                 rqt.get_api(),
                 ctx.linky_api,
-                ctx.adps_verb,
+                ctx.linky_verb,
                 EnergyAction::READ,
             )?;
 
-            let jreply = response.get::<JsoncObj>(0)?;
-            for idx in 0..jreply.count()? {
-                let value = jreply.index::<i32>(idx)?;
+            let jargs = response.get::<JsoncObj>(0)?;
+            for idx in 0..jargs.count()? {
+                let value = jargs.index::<i32>(idx)?;
                 match idx {
                     0 => data_set.total = value,
                     1 => data_set.l1 = value,
@@ -106,7 +129,7 @@ fn adps_request_cb(
                 AfbSubCall::call_sync(
                     rqt.get_api(),
                     ctx.linky_api,
-                    ctx.adps_verb,
+                    ctx.linky_verb,
                     EnergyAction::SUBSCRIBE,
                 )?;
             }
@@ -524,27 +547,55 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     // Over current data_set from Linky meter
-    const VB_LINKY: &str = "adsp";
+    const OVER_LINKY: &str = "iover";
     let adps_set = Rc::new(RefCell::new(MeterDataSet::default(
         MeterTagSet::OverCurrent,
     )));
-    let adps_event = AfbEvent::new(VB_LINKY);
+
+    let adps_event = AfbEvent::new(OVER_LINKY);
     let adps_verb = AfbVerb::new("over-current")
-        .set_name(VB_LINKY)
+        .set_name(OVER_LINKY)
         .set_info("current over current(adps) in A")
         .set_action(ACTIONS)?
-        .set_callback(Box::new(AdpsRequestCtx {
+        .set_callback(Box::new(LinkyRqtCtx {
             data_set: adps_set.clone(),
             linky_api: config.linky_api,
-            adps_verb: "ADPS",
+            linky_verb: "ADPS",
             evt: adps_event,
         }))
         .finalize()?;
-    let adps_handler = AfbEvtHandler::new(VB_LINKY)
+    let adps_handler = AfbEvtHandler::new(OVER_LINKY)
         .set_pattern(to_static_str(format!("{}/ADPS", config.linky_api)))
-        .set_callback(Box::new(LinkyAdpsEvtCtrl {
+        .set_callback(Box::new(LinkyOverEvtCtx {
             data_set: adps_set.clone(),
             evt: adps_event,
+            energy_mgr: config.energy_mgr,
+        }))
+        .finalize()?;
+
+        // Over current data_set from Linky meter
+    const AVAIL_LINKY: &str = "iavail";
+    let avail_set = Rc::new(RefCell::new(MeterDataSet::default(
+        MeterTagSet::OverCurrent,
+    )));
+
+    let iavail_event = AfbEvent::new(AVAIL_LINKY);
+    let iavail_verb = AfbVerb::new("avail-current")
+        .set_name(AVAIL_LINKY)
+        .set_info("current avaliable (sinsts) in VA")
+        .set_action(ACTIONS)?
+        .set_callback(Box::new(LinkyRqtCtx {
+            data_set: avail_set.clone(),
+            linky_api: config.linky_api,
+            linky_verb: "SINSTS",
+            evt: iavail_event,
+        }))
+        .finalize()?;
+    let iavail_handler = AfbEvtHandler::new(AVAIL_LINKY)
+        .set_pattern(to_static_str(format!("{}/SINSTS", config.linky_api)))
+        .set_callback(Box::new(LinkyAvailEvtCtx {
+            data_set: avail_set.clone(),
+            evt: iavail_event,
             energy_mgr: config.energy_mgr,
         }))
         .finalize()?;
@@ -552,6 +603,10 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     api.add_event(adps_event);
     api.add_evt_handler(adps_handler);
     api.add_verb(adps_verb);
+
+    api.add_event(iavail_event);
+    api.add_evt_handler(iavail_handler);
+    api.add_verb(iavail_verb);
 
     api.add_event(state_event);
     api.add_verb(state_verb);
