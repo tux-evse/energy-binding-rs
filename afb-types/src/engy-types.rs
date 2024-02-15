@@ -19,6 +19,7 @@ pub enum MeterTagSet {
     Tension,
     Power,
     OverCurrent,
+    AvailCurrent,
     Energy,
     #[default]
     Unset,
@@ -50,9 +51,15 @@ pub struct MeterDataSet {
 
 impl MeterDataSet {
     pub fn default(tag: MeterTagSet) -> Self {
+        let variation= match tag {
+            MeterTagSet::AvailCurrent => 1,
+            MeterTagSet::OverCurrent => 1,
+            _ => 0,
+        };
+
         MeterDataSet {
             tag: tag,
-            variation: 1,
+            variation: variation,
             start: 0,
             updated: false,
             total: 0,
