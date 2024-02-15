@@ -36,7 +36,11 @@ struct LinkyOverEvtCtx {
 }
 
 AfbEventRegister!(LinkyOverEvtCtrl, evt_iover_cb, LinkyOverEvtCtx);
-fn evt_iover_cb(_evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyOverEvtCtx) -> Result<(), AfbError> {
+fn evt_iover_cb(
+    _evt: &AfbEventMsg,
+    args: &AfbData,
+    ctx: &mut LinkyOverEvtCtx,
+) -> Result<(), AfbError> {
     let mut data_set = match ctx.data_set.try_borrow_mut() {
         Err(_) => return afb_error!("energy-LinkyAdps-update", "fail to access energy state"),
         Ok(value) => value,
@@ -59,7 +63,11 @@ struct LinkyAvailEvtCtx {
     evt: &'static AfbEvent,
 }
 AfbEventRegister!(LinkyAvailEvtCtrl, evt_iavail_cb, LinkyAvailEvtCtx);
-fn evt_iavail_cb(_evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyAvailEvtCtx) -> Result<(), AfbError> {
+fn evt_iavail_cb(
+    _evt: &AfbEventMsg,
+    args: &AfbData,
+    ctx: &mut LinkyAvailEvtCtx,
+) -> Result<(), AfbError> {
     let mut data_set = match ctx.data_set.try_borrow_mut() {
         Err(_) => return afb_error!("energy-LinkyAvail-update", "fail to access energy state"),
         Ok(value) => value,
@@ -67,11 +75,14 @@ fn evt_iavail_cb(_evt: &AfbEventMsg, args: &AfbData, ctx: &mut LinkyAvailEvtCtx)
     let jargs = args.get::<JsoncObj>(0)?;
     for idx in 0..jargs.count()? {
         let value = jargs.index::<f64>(idx)?;
+        data_set.total = data_set.total + (value * 100.0).round() as i32;
         data_set.update(idx, value)?;
     }
     if data_set.updated {
-        let iavail= ctx.energy_mgr.check_avaliable_current(&data_set)?;
-        ctx.evt.push(iavail);
+        let (iavail, imax) = ctx.energy_mgr.check_available_current(&data_set)?;
+        if iavail < imax {
+            ctx.evt.push(iavail);
+        }
     }
     Ok(())
 }
@@ -573,10 +584,10 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         }))
         .finalize()?;
 
-        // Over current data_set from Linky meter
+    // Over current data_set from Linky meter
     const AVAIL_LINKY: &str = "iavail";
     let avail_set = Rc::new(RefCell::new(MeterDataSet::default(
-        MeterTagSet::OverCurrent,
+        MeterTagSet::AvailCurrent,
     )));
 
     let iavail_event = AfbEvent::new(AVAIL_LINKY);
