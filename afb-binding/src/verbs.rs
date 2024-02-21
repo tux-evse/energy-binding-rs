@@ -166,7 +166,6 @@ struct MeterEvtCtx {
     data_set: Rc<RefCell<MeterDataSet>>,
     labels: &'static [&'static str],
     meter_api: &'static str,
-    meter_prefix: &'static str,
     evt: &'static AfbEvent,
     energy_mgr: &'static ManagerHandle,
 }
@@ -203,40 +202,8 @@ fn evt_meter_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut MeterEvtCtx) -> Res
     // to limit the number of events data is updated only when total value is received
     if data_set.updated {
         ctx.energy_mgr.update_data_set(&data_set)?;
-        let listeners = ctx.evt.push(data_set.clone());
-        // if no one listen then unsubscribe the low level energy meter events
-        if listeners <= 0 {
-            afb_log_msg!(
-                Notice,
-                evt,
-                "no more listener to energy event({}) rc={}",
-                evt.get_uid(),
-                listeners
-            );
-            for label in ctx.labels {
-                afb_log_msg!(
-                    Notice,
-                    evt,
-                    "Unsubscribe api:{}/{}",
-                    ctx.meter_api,
-                    [ctx.meter_prefix, label].join("/")
-                );
-                AfbSubCall::call_sync(
-                    evt.get_apiv4(),
-                    ctx.meter_api,
-                    [ctx.meter_prefix, label].join("/").as_str(),
-                    EnergyAction::UNSUBSCRIBE,
-                )?;
-                afb_log_msg!(
-                    Notice,
-                    evt,
-                    "Unsubscribed api:{}/{}",
-                    ctx.meter_api,
-                    [ctx.meter_prefix, label].join("/")
-                );
-            }
-        }
-    }
+        let _listeners = ctx.evt.push(data_set.clone());
+     }
     Ok(())
 }
 
@@ -368,6 +335,9 @@ fn conf_request_cb(
 struct StateRequestCtx {
     mgr: &'static ManagerHandle,
     evt: &'static AfbEvent,
+    meter_api: &'static str,
+    meter_prefix: &'static str,
+    labels: &'static [&'static str],
 }
 AfbVerbRegister!(StateRequestVerb, state_request_cb, StateRequestCtx);
 fn state_request_cb(
@@ -383,6 +353,17 @@ fn state_request_cb(
 
         EnergyAction::SUBSCRIBE => {
             afb_log_msg!(Notice, rqt, "Subscribe {}", ctx.evt.get_uid());
+
+            // let's make sure we listen for emer events.
+            for label in ctx.labels {
+                AfbSubCall::call_sync(
+                    rqt.get_api(),
+                    ctx.meter_api,
+                    [ctx.meter_prefix, label].join("/").as_str(),
+                    EnergyAction::SUBSCRIBE,
+                )?;
+            }
+
             ctx.evt.subscribe(rqt)?;
             rqt.reply(AFB_NO_DATA, 0);
         }
@@ -410,6 +391,13 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     const CURRENTS: [&str; 4] = ["Amp-Total", "Amp-L1", "Amp-L2", "Amp-L3"];
     const POWER: [&str; 4] = ["Watt-Total", "Watt-L1", "Watt-L2", "Watt-L3"];
     const ENERGY: [&str; 2] = ["Energy-Session", "Energy-Total"];
+    const STATE: [&str; 5] = [
+        "Energy-Session",
+        "Energy-Total",
+        "Watt-Total",
+        "Amp-Total",
+        "Volt-Avr",
+    ];
 
     let state_event = AfbEvent::new("state");
     AfbTimer::new("tic-timer")
@@ -423,11 +411,14 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
 
     let state_verb = AfbVerb::new("charging-state")
         .set_name("state")
-        .set_info("current charging state")
+        .set_info("current charging state (energy)")
         .set_action("['read','subscribe','unsubscribe']")?
         .set_callback(Box::new(StateRequestCtx {
             mgr: config.energy_mgr,
             evt: state_event,
+            meter_api: config.meter_api,
+            meter_prefix: "SDM72D",
+            labels: &STATE,
         }))
         .finalize()?;
 
@@ -465,7 +456,6 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             evt: tension_event,
             labels: &VOLTS,
             meter_api: config.meter_api,
-            meter_prefix: "SDM72D",
             energy_mgr: config.energy_mgr,
         }))
         .finalize()?;
@@ -494,7 +484,6 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             evt: energy_event,
             labels: &ENERGY,
             meter_api: config.meter_api,
-            meter_prefix: "SDM72D",
             energy_mgr: config.energy_mgr,
         }))
         .finalize()?;
@@ -523,7 +512,6 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             evt: current_event,
             labels: &VOLTS,
             meter_api: config.meter_api,
-            meter_prefix: "SDM72D",
             energy_mgr: config.energy_mgr,
         }))
         .finalize()?;
@@ -552,7 +540,6 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             evt: power_event,
             labels: &VOLTS,
             meter_api: config.meter_api,
-            meter_prefix: "SDM72D",
             energy_mgr: config.energy_mgr,
         }))
         .finalize()?;

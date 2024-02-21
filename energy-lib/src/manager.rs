@@ -89,7 +89,7 @@ impl ManagerHandle {
     pub fn set_power_subscription(&self, watt_max: i32, volts: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
 
-        data_set.subscription_max = watt_max;
+        data_set.subscription_max = watt_max*100;
         data_set.volts = volts;
         Ok(self)
     }
