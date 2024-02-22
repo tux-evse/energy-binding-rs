@@ -13,6 +13,7 @@ use afbv4::prelude::*;
 use serde::{Deserialize, Serialize};
 use  std::time::Duration;
 
+AfbDataConverter!(meter_tag_set, MeterTagSet);
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub enum MeterTagSet {
     Current,
@@ -127,7 +128,7 @@ pub struct EnergyState {
     #[serde(skip)]
     pub subscription_max: i32,
     #[serde(skip)]
-    pub tension_max: i32,
+    pub umax: i32,
     #[serde(skip)]
     pub imax: i32,
     #[serde(skip)]
@@ -143,15 +144,15 @@ pub struct EnergyState {
 }
 
 impl EnergyState {
-    pub fn default() -> Self {
+    pub fn default(imax: i32, pmax: i32,umax: i32) -> Self {
         EnergyState {
             subscription_max: 0,
-            imax: 0,
-            pmax: 0,
-            volts: 0,
-            tension_max: 0,
+            imax: imax,
+            pmax: pmax,
+            umax: umax,
             session: 0,
             total: 0,
+            volts: 0,
             current: 0,
             tension: 0,
             power: 0,
@@ -165,5 +166,6 @@ pub fn engy_registers() -> Result<(), AfbError> {
     config_data_set::register()?;
     energy_actions::register()?;
     energy_state::register()?;
+    meter_tag_set::register()?;
     Ok(())
 }

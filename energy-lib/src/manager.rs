@@ -23,9 +23,9 @@ pub struct ManagerHandle {
 }
 
 impl ManagerHandle {
-    pub fn new(event: &'static AfbEvent, imax: i32, pmax: i32) -> &'static mut Self {
+    pub fn new(event: &'static AfbEvent, imax: i32, pmax: i32, umax: i32) -> &'static mut Self {
         let handle = ManagerHandle {
-            data_set: RefCell::new(EnergyState::default()),
+            data_set: RefCell::new(EnergyState::default(imax, pmax, umax)),
             event,
             imax,
             pmax,
@@ -94,7 +94,7 @@ impl ManagerHandle {
         Ok(self)
     }
 
-    pub fn notify_over_power(&self, tag: &MeterTagSet, over_power: i32) -> Result<(), AfbError> {
+    pub fn notify_over_power(&self, tag: MeterTagSet, over_power: i32) -> Result<(), AfbError> {
         afb_log_msg!(
             Notice,
             self.event,
@@ -102,7 +102,7 @@ impl ManagerHandle {
             tag,
             over_power
         );
-        self.event.push(false);
+        self.event.push(tag);
         Ok(())
     }
 
@@ -141,16 +141,16 @@ impl ManagerHandle {
                     || data_new.l2 > data_set.imax
                     || data_new.l3 > data_set.imax
                 {
-                    self.notify_over_power(&data_new.tag, data_set.imax)?;
+                    self.notify_over_power(data_new.tag.clone(), data_set.imax)?;
                 }
             }
             MeterTagSet::Tension => {
                 data_set.tension = data_new.l1;
-                if data_new.l1 > data_set.tension_max
-                    || data_new.l2 > data_set.tension_max
-                    || data_new.l3 > data_set.tension_max
+                if data_new.l1 > data_set.umax
+                    || data_new.l2 > data_set.umax
+                    || data_new.l3 > data_set.umax
                 {
-                    self.notify_over_power(&data_new.tag, data_set.imax)?;
+                    self.notify_over_power(data_new.tag.clone(), data_set.imax)?;
                 }
             }
             MeterTagSet::Power => {
@@ -159,17 +159,17 @@ impl ManagerHandle {
                     || data_new.l2 > data_set.subscription_max
                     || data_new.l3 > data_set.subscription_max
                 {
-                    self.notify_over_power(&data_new.tag, data_set.subscription_max)?;
+                    self.notify_over_power(data_new.tag.clone(), data_set.subscription_max)?;
                 }
                 if data_new.l1 > data_set.pmax
                     || data_new.l2 > data_set.pmax
                     || data_new.l3 > data_set.pmax
                 {
-                    self.notify_over_power(&data_new.tag, data_set.pmax)?;
+                    self.notify_over_power(data_new.tag.clone(), data_set.pmax)?;
                 }
             }
             MeterTagSet::OverCurrent => {
-                self.notify_over_power(&data_new.tag, data_set.subscription_max)?;
+                self.notify_over_power(data_new.tag.clone(), data_set.subscription_max)?;
             }
             _ => {}
         }

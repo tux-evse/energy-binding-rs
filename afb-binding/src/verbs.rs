@@ -391,7 +391,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     const CURRENTS: [&str; 4] = ["Amp-Total", "Amp-L1", "Amp-L2", "Amp-L3"];
     const POWER: [&str; 4] = ["Watt-Total", "Watt-L1", "Watt-L2", "Watt-L3"];
     const ENERGY: [&str; 2] = ["Energy-Session", "Energy-Total"];
-    const GLO_STATE: [&str; ] = [
+    const GLO_STATE: [&str; 6] = [
         "Energy-Session",
         "Energy-Total",
         "Watt-Total",

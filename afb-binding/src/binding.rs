@@ -21,6 +21,7 @@ pub struct BindingCfg {
     pub energy_mgr: &'static ManagerHandle,
     pub imax: i32,
     pub pmax: i32,
+    pub umax: i32,
     pub tic: u32,
 }
 
@@ -44,7 +45,8 @@ impl AfbApiControls for ApiUserData {
             let max_power = response.get::<JsoncObj>(0)?.index::<i32>(0)?;
             let response = AfbSubCall::call_sync(api, self.linky_api, "URMS", EnergyAction::READ)?;
             let cur_tension = response.get::<JsoncObj>(0)?.index::<i32>(0)?;
-            self.energy_mgr.set_power_subscription(max_power * 1000, cur_tension)?;
+            self.energy_mgr
+                .set_power_subscription(max_power * 1000, cur_tension)?;
 
             AfbSubCall::call_sync(api, self.linky_api, "ADPS", EnergyAction::SUBSCRIBE)?;
         }
@@ -65,19 +67,20 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     // add binding custom converter
     engy_registers()?;
 
-    let uid =  jconf.default::<&'static str>("uid", "energy-mgr")?;
-    let api =  jconf.default::<&'static str>("api", uid)?;
-    let info =  jconf.default::<&'static str>("info", "")?;
+    let uid = jconf.default::<&'static str>("uid", "energy-mgr")?;
+    let api = jconf.default::<&'static str>("api", uid)?;
+    let info = jconf.default::<&'static str>("info", "")?;
 
-    let imax =  jconf.default::<i32>("imax", 32)?;
-    let pmax =  jconf.default::<i32>("pmax", 22)?;
+    let imax = jconf.default::<i32>("imax", 32)?;
+    let pmax = jconf.default::<i32>("pmax", 22)?;
+    let umax = jconf.default::<i32>("umax", 245)?;
 
-    let linky_api =  jconf.default::<&'static str>("linky_api", "")?;
-    let meter_api =  jconf.default::<&'static str>("meter_api", "modbus")?;
+    let linky_api = jconf.default::<&'static str>("linky_api", "")?;
+    let meter_api = jconf.default::<&'static str>("meter_api", "modbus")?;
 
     // Create the energy manager now in order to share session authorization it with verbs/events
-    let energy_event = AfbEvent::new("energy");
-    let energy_mgr = ManagerHandle::new(energy_event, imax, pmax);
+    let energy_event = AfbEvent::new("over-limit");
+    let energy_mgr = ManagerHandle::new(energy_event, imax, pmax, umax);
     let tic = jconf.get::<u32>("tic")?;
 
     // create backend API
@@ -97,6 +100,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
         energy_mgr,
         pmax,
         imax,
+        umax,
         tic,
     };
 
