@@ -1,5 +1,6 @@
 # energy-binding-rs
 
+Fulup more doc TBS
 energy manager micro service
 
 
