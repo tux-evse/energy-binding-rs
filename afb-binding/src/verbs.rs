@@ -396,6 +396,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         "Energy-Total",
         "Watt-Total",
         "Amp-Total",
+        "Amp-L1",
         "Volt-Avr",
     ];
 
