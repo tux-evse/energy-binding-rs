@@ -75,27 +75,30 @@ impl MeterDataSet {
         match phase {
             0 => {
                 let value = value - self.start;
-                if self.total * 100 / self.variation < value
-                    || value > self.l3 * 100 / self.variation
+                if self.variation == 0 ||  self.total * 100 / self.variation < value
+                    || value > self.l1 * 100 / self.variation
                 {
                     self.total = value;
                     self.updated = true;
                 }
+
             }
             1 => {
-                if self.l1 * 100 / self.variation < value || value > self.l3 * 100 / self.variation
+                if self.variation == 0 || self.l1 * 100 / self.variation < value || value > self.l3 * 100 / self.variation
                 {
                     self.l1 = value;
                 }
+
             }
             2 => {
-                if self.l2 * 100 / self.variation < value || value > self.l3 * 100 / self.variation
+                if self.variation == 0 ||  self.l2 * 100 / self.variation < value || value > self.l3 * 100 / self.variation
                 {
                     self.l3 = value;
                 }
+
             }
             3 => {
-                if self.l2 * 100 / self.variation < value || value > self.l3 * 100 / self.variation
+                if self.variation == 0 || self.l2 * 100 / self.variation < value || value > self.l3 * 100 / self.variation
                 {
                     self.l3 = value;
                 }
@@ -103,7 +106,7 @@ impl MeterDataSet {
             _ => return afb_error!("data-set-update", "invalid phase:{}", phase),
         }
         Ok(())
-    }
+}
 }
 
 AfbDataConverter!(energy_actions, EnergyAction);
