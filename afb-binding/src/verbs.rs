@@ -391,7 +391,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     const CURRENTS: [&str; 4] = ["Amp-Total", "Amp-L1", "Amp-L2", "Amp-L3"];
     const POWER: [&str; 4] = ["Watt-Total", "Watt-L1", "Watt-L2", "Watt-L3"];
     const ENERGY: [&str; 2] = ["Energy-Session", "Energy-Total"];
-    const STATE: [&str; 5] = [
+    const GLO_STATE: [&str; 6] = [
         "Energy-Session",
         "Energy-Total",
         "Watt-Total",
@@ -419,7 +419,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
             evt: state_event,
             meter_api: config.meter_api,
             meter_prefix: "SDM72D",
-            labels: &STATE,
+            labels: &GLO_STATE,
         }))
         .finalize()?;
 
