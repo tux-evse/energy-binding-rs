@@ -510,7 +510,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .set_callback(Box::new(MeterEvtCtrl {
             data_set: current_set.clone(),
             evt: current_event,
-            labels: &VOLTS,
+            labels: &CURRENTS,
             meter_api: config.meter_api,
             energy_mgr: config.energy_mgr,
         }))
@@ -538,7 +538,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .set_callback(Box::new(MeterEvtCtrl {
             data_set: power_set.clone(),
             evt: power_event,
-            labels: &VOLTS,
+            labels: &POWER,
             meter_api: config.meter_api,
             energy_mgr: config.energy_mgr,
         }))
