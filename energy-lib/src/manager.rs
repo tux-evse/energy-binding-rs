@@ -27,8 +27,8 @@ impl ManagerHandle {
         let handle = ManagerHandle {
             data_set: RefCell::new(EnergyState::default(imax, pmax, umax)),
             event,
-            imax,
-            pmax,
+            imax: imax*100,
+            pmax: pmax*100,
         };
 
         // return a static handle to prevent Rust from complaining when moving/sharing it
