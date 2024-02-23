@@ -145,7 +145,7 @@ impl ManagerHandle {
                 }
             }
             MeterTagSet::Tension => {
-                data_set.tension = data_new.l1;
+                data_set.tension = data_new.total;
                 if data_new.l1 > data_set.umax
                     || data_new.l2 > data_set.umax
                     || data_new.l3 > data_set.umax
