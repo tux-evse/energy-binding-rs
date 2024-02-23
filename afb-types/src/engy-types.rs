@@ -144,9 +144,9 @@ impl EnergyState {
     pub fn default(imax: i32, pmax: i32,umax: i32) -> Self {
         EnergyState {
             subscription_max: 0,
-            imax: imax,
-            pmax: pmax,
-            umax: umax,
+            imax: imax*100,
+            pmax: pmax*100,
+            umax: umax*100,
             session: 0,
             total: 0,
             volts: 0,

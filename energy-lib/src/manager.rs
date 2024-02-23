@@ -150,7 +150,7 @@ impl ManagerHandle {
                     || data_new.l2 > data_set.umax
                     || data_new.l3 > data_set.umax
                 {
-                    self.notify_over_power(data_new.tag.clone(), data_set.imax)?;
+                    self.notify_over_power(data_new.tag.clone(), data_set.umax)?;
                 }
             }
             MeterTagSet::Power => {
