@@ -51,7 +51,7 @@ fn evt_iover_cb(
         data_set.update(idx, value)?;
     }
     if data_set.updated {
-        ctx.energy_mgr.update_data_set(&data_set)?;
+        ctx.energy_mgr.check_over_subscription(&data_set)?;
         ctx.evt.push(data_set.clone());
     }
     Ok(())
@@ -201,7 +201,7 @@ fn evt_meter_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut MeterEvtCtx) -> Res
 
     // to limit the number of events data is updated only when total value is received
     if data_set.updated {
-        ctx.energy_mgr.update_data_set(&data_set)?;
+        ctx.energy_mgr.check_over_subscription(&data_set)?;
         let _listeners = ctx.evt.push(data_set.clone());
      }
     Ok(())
@@ -324,7 +324,6 @@ fn conf_request_cb(
 
     //automatically subscribe client to energy manager event
     ctx.energy_mgr.subscribe_over_power(rqt)?;
-
     ctx.energy_mgr.set_imax_cable(config.imax)?;
     ctx.energy_mgr.set_power_backend(config.pmax)?;
 

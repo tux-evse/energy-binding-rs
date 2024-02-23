@@ -131,7 +131,7 @@ impl ManagerHandle {
         Ok(())
     }
 
-    pub fn update_data_set(&self, data_new: &MeterDataSet) -> Result<(), AfbError> {
+    pub fn check_over_subscription(&self, data_new: &MeterDataSet) -> Result<(), AfbError> {
         let mut data_set = self.get_state()?;
 
         match data_new.tag {
@@ -161,13 +161,8 @@ impl ManagerHandle {
                 {
                     self.notify_over_power(data_new.tag.clone(), data_set.subscription_max)?;
                 }
-                if data_new.l1 > data_set.pmax
-                    || data_new.l2 > data_set.pmax
-                    || data_new.l3 > data_set.pmax
-                {
-                    self.notify_over_power(data_new.tag.clone(), data_set.pmax)?;
-                }
             }
+
             MeterTagSet::OverCurrent => {
                 self.notify_over_power(data_new.tag.clone(), data_set.subscription_max)?;
             }
