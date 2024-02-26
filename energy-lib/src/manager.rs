@@ -11,12 +11,12 @@
  */
 
 use afbv4::prelude::*;
-use std::cell::{RefCell, RefMut};
+use std::sync::{Mutex, MutexGuard};
 use std::time::SystemTime;
 use typesv4::prelude::*;
 
 pub struct ManagerHandle {
-    data_set: RefCell<EnergyState>,
+    data_set: Mutex<EnergyState>,
     event: &'static AfbEvent,
     imax: i32,
     pmax: i32,
@@ -25,7 +25,7 @@ pub struct ManagerHandle {
 impl ManagerHandle {
     pub fn new(event: &'static AfbEvent, imax: i32, pmax: i32, umax: i32) -> &'static mut Self {
         let handle = ManagerHandle {
-            data_set: RefCell::new(EnergyState::default(imax, pmax, umax)),
+            data_set: Mutex::new(EnergyState::default(imax, pmax, umax)),
             event,
             imax: imax*100,
             pmax: pmax*100,
@@ -36,11 +36,9 @@ impl ManagerHandle {
     }
 
     #[track_caller]
-    pub fn get_state(&self) -> Result<RefMut<'_, EnergyState>, AfbError> {
-        match self.data_set.try_borrow_mut() {
-            Err(_) => return afb_error!("energy-manager-update", "fail to access &mut data_set"),
-            Ok(value) => Ok(value),
-        }
+    pub fn get_state(&self) -> Result<MutexGuard<'_, EnergyState>, AfbError> {
+        let guard = self.data_set.lock().unwrap();
+        Ok(guard)
     }
 
     #[track_caller]

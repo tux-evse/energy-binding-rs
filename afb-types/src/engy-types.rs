@@ -122,6 +122,7 @@ pub enum EnergyAction {
 AfbDataConverter!(energy_state, EnergyState);
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct EnergyState {
+    // private data
     #[serde(skip)]
     pub subscription_max: i32,
     #[serde(skip)]
