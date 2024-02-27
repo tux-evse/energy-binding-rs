@@ -161,9 +161,7 @@ impl ManagerHandle {
             }
             MeterTagSet::Power => {
                 data_set.power = data_new.total;
-                if data_new.l1 > data_set.subscription_max
-                    || data_new.l2 > data_set.subscription_max
-                    || data_new.l3 > data_set.subscription_max
+                if data_new.total > data_set.subscription_max*1000 // Power is in wath subscription in kW
                 {
                     self.notify_over_power(data_new.tag.clone(), data_set.subscription_max)?;
                 }
