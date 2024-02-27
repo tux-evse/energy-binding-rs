@@ -143,10 +143,10 @@ pub struct EnergyState {
 impl EnergyState {
     pub fn default(imax: i32, pmax: i32,umax: i32) -> Self {
         EnergyState {
-            subscription_max: 0,
-            imax: imax*100,
-            pmax: pmax*100,
-            umax: umax*100,
+            subscription_max: pmax,
+            imax: imax,
+            pmax: pmax,
+            umax: umax,
             session: 0,
             volts: 0,
             current: 0,

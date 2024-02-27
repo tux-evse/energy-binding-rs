@@ -24,11 +24,14 @@ pub struct ManagerHandle {
 
 impl ManagerHandle {
     pub fn new(event: &'static AfbEvent, imax: i32, pmax: i32, umax: i32) -> &'static mut Self {
+        let imax = imax * 100;
+        let pmax = pmax * 100;
+        let umax = umax * 100;
         let handle = ManagerHandle {
             data_set: Mutex::new(EnergyState::default(imax, pmax, umax)),
             event,
-            imax: imax*100,
-            pmax: pmax*100,
+            imax: imax,
+            pmax: pmax,
         };
 
         // return a static handle to prevent Rust from complaining when moving/sharing it
@@ -57,14 +60,14 @@ impl ManagerHandle {
     pub fn get_config(&self) -> Result<EngyConfSet, AfbError> {
         let data_set = self.get_state()?;
         Ok(EngyConfSet {
-            pmax: data_set.pmax,
-            imax: data_set.imax,
+            pmax: data_set.pmax / 100,
+            imax: data_set.imax / 100,
         })
     }
 
     pub fn set_imax_cable(&self, amp_max: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
-        let amp_max= amp_max*100;
+        let amp_max = amp_max * 100;
         if amp_max != 0 && amp_max < self.imax {
             data_set.imax = amp_max;
         } else {
@@ -75,7 +78,7 @@ impl ManagerHandle {
 
     pub fn set_power_backend(&self, kwh_max: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
-        let kwh_max= kwh_max*100;
+        let kwh_max = kwh_max * 100;
 
         if kwh_max != 0 && kwh_max < self.pmax {
             data_set.pmax = kwh_max;
@@ -88,7 +91,7 @@ impl ManagerHandle {
     pub fn set_power_subscription(&self, watt_max: i32, volts: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
 
-        data_set.subscription_max = watt_max*100;
+        data_set.subscription_max = watt_max * 100;
         data_set.volts = volts;
         Ok(self)
     }
@@ -106,23 +109,27 @@ impl ManagerHandle {
     }
 
     // TBD fulup: make available current per phase smarter
-    pub fn check_available_current(&self, data: &MeterDataSet) -> Result <(i32,i32), AfbError> {
+    pub fn check_available_current(&self, data: &MeterDataSet) -> Result<(i32, i32), AfbError> {
         let data_set = self.get_state()?;
 
         let nb_phases = if data.total == data.l1 {
             1
         } else {
-            let mut phases= 1;
-            if data.l2 > 0 {phases= phases+1};
-            if data.l3 > 0 {phases= phases+1};
+            let mut phases = 1;
+            if data.l2 > 0 {
+                phases = phases + 1
+            };
+            if data.l3 > 0 {
+                phases = phases + 1
+            };
             phases
         };
 
         // never use more than 80% of available subscription power
-        let remaining= (self.pmax*80)/100 - data.total;
-        let iavail= remaining/data_set.volts/nb_phases;
+        let remaining = (self.pmax * 80) / 100 - data.total;
+        let iavail = remaining / data_set.volts / nb_phases;
 
-        Ok((iavail/100, data_set.imax)) //move to A
+        Ok((iavail / 100, data_set.imax)) //move to A
     }
 
     pub fn subscribe_over_power(&self, rqt: &AfbRequest) -> Result<(), AfbError> {
@@ -163,7 +170,7 @@ impl ManagerHandle {
             }
 
             MeterTagSet::Energy => {
-                data_set.session= data_new.total;
+                data_set.session = data_new.total;
             }
 
             MeterTagSet::OverCurrent => {
