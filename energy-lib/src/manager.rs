@@ -161,6 +161,11 @@ impl ManagerHandle {
                 }
             }
 
+            MeterTagSet::Energy => {
+                data_set.total = data_new.total;
+                data_set.session= data_new.l1;
+            }
+
             MeterTagSet::OverCurrent => {
                 self.notify_over_power(data_new.tag.clone(), data_set.subscription_max)?;
             }

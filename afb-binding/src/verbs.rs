@@ -389,13 +389,12 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     const VOLTS: [&str; 4] = ["Volt-Avr", "Volt-L1", "Volt-L2", "Volt-L3"];
     const CURRENTS: [&str; 4] = ["Amp-Total", "Amp-L1", "Amp-L2", "Amp-L3"];
     const POWER: [&str; 4] = ["Watt-Total", "Watt-L1", "Watt-L2", "Watt-L3"];
-    const ENERGY: [&str; 2] = ["Energy-Session", "Energy-Total"];
-    const GLO_STATE: [&str; 6] = [
+    const ENERGY: [&str; 2] = ["Energy-Total","Energy-Session"];
+    const GLO_STATE: [&str; 5] = [
         "Energy-Session",
         "Energy-Total",
         "Watt-Total",
         "Amp-Total",
-        "Amp-L1",
         "Volt-Avr",
     ];
 
@@ -464,7 +463,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     const VB_ENERGY: &str = "energy";
     let energy_set = Rc::new(RefCell::new(MeterDataSet::default(MeterTagSet::Energy)));
     let energy_event = AfbEvent::new(VB_ENERGY);
-    let energy_verb = AfbVerb::new("energy-watt")
+    let energy_verb = AfbVerb::new("Energy-watt")
         .set_name(VB_ENERGY)
         .set_info("energy in watt*100")
         .set_action(RESET)?
@@ -478,7 +477,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
         .finalize()?;
 
     let energy_handler = AfbEvtHandler::new(VB_ENERGY)
-        .set_pattern(to_static_str(format!("{}/Ener*", config.meter_api)))
+        .set_pattern(to_static_str(format!("{}/Energy-*", config.meter_api)))
         .set_callback(Box::new(MeterEvtCtrl {
             data_set: energy_set.clone(),
             evt: energy_event,
