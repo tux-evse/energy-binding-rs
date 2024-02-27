@@ -389,9 +389,8 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     const VOLTS: [&str; 4] = ["Volt-Avr", "Volt-L1", "Volt-L2", "Volt-L3"];
     const CURRENTS: [&str; 4] = ["Amp-Total", "Amp-L1", "Amp-L2", "Amp-L3"];
     const POWER: [&str; 4] = ["Watt-Total", "Watt-L1", "Watt-L2", "Watt-L3"];
-    const ENERGY: [&str; 2] = ["Energy-Total","Energy-Session"];
-    const GLO_STATE: [&str; 5] = [
-        "Energy-Session",
+    const ENERGY: [&str; 1] = ["Energy-Total"];
+    const GLO_STATE: [&str; 4] = [
         "Energy-Total",
         "Watt-Total",
         "Amp-Total",

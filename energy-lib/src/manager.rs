@@ -64,7 +64,7 @@ impl ManagerHandle {
 
     pub fn set_imax_cable(&self, amp_max: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
-
+        let amp_max= amp_max*100;
         if amp_max != 0 && amp_max < self.imax {
             data_set.imax = amp_max;
         } else {
@@ -75,6 +75,7 @@ impl ManagerHandle {
 
     pub fn set_power_backend(&self, kwh_max: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
+        let kwh_max= kwh_max*100;
 
         if kwh_max != 0 && kwh_max < self.pmax {
             data_set.pmax = kwh_max;
@@ -162,8 +163,7 @@ impl ManagerHandle {
             }
 
             MeterTagSet::Energy => {
-                data_set.total = data_new.total;
-                data_set.session= data_new.l1;
+                data_set.session= data_new.total;
             }
 
             MeterTagSet::OverCurrent => {
