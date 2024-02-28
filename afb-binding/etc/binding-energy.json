@@ -8,6 +8,7 @@
             "permission": "acl:engy",
             "meter_api": "modbus",
             "tic": 30000, // timer state tic in ms
+            "phase": 3, // number of phases
             "amp": 1, // variation in % for notification
             "imax": 32, // force imax by config
             "pmax": 22, // force pmax by config

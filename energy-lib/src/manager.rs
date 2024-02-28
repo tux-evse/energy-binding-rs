@@ -20,10 +20,11 @@ pub struct ManagerHandle {
     event: &'static AfbEvent,
     imax: i32,
     pmax: i32,
+    phase: i32,
 }
 
 impl ManagerHandle {
-    pub fn new(event: &'static AfbEvent, imax: i32, pmax: i32, umax: i32) -> &'static mut Self {
+    pub fn new(event: &'static AfbEvent, imax: i32, pmax: i32, umax: i32, phase: i32) -> &'static mut Self {
         let imax = imax * 1000;
         let pmax = pmax * 1000;
         let umax = umax * 1000;
@@ -32,6 +33,7 @@ impl ManagerHandle {
             event,
             imax: imax,
             pmax: pmax,
+            phase,
         };
 
         // return a static handle to prevent Rust from complaining when moving/sharing it
@@ -92,7 +94,7 @@ impl ManagerHandle {
         let mut data_set = self.get_state()?;
 
         data_set.subscription_max = watt_max * 1000;
-        data_set.tension = volts;
+        data_set.tension= volts;
         Ok(self)
     }
 
@@ -114,9 +116,8 @@ impl ManagerHandle {
 
         // never use more than 80% of available subscription power
         let remaining = (self.pmax * 80) / 100 - data.total;
-        let iavail = remaining / data_set.tension;
-
-        Ok((iavail / 1000, data_set.imax)) //move to A
+        let iavail = remaining / data_set.tension / self.phase;
+        Ok((iavail, data_set.imax)) //move to A/phase
     }
 
     pub fn subscribe_over_power(&self, rqt: &AfbRequest) -> Result<(), AfbError> {

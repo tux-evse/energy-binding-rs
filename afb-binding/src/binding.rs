@@ -22,6 +22,7 @@ pub struct BindingCfg {
     pub imax: i32,
     pub pmax: i32,
     pub umax: i32,
+    pub phase: i32,
     pub tic: u32,
 }
 
@@ -74,13 +75,14 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
     let imax = jconf.default::<i32>("imax", 32)?;
     let pmax = jconf.default::<i32>("pmax", 22)?;
     let umax = jconf.default::<i32>("umax", 245)?;
+    let phase = jconf.default::<i32>("phase", 3)?;
 
     let linky_api = jconf.default::<&'static str>("linky_api", "")?;
     let meter_api = jconf.default::<&'static str>("meter_api", "modbus")?;
 
     // Create the energy manager now in order to share session authorization it with verbs/events
     let energy_event = AfbEvent::new("over-limit");
-    let energy_mgr = ManagerHandle::new(energy_event, imax, pmax, umax);
+    let energy_mgr = ManagerHandle::new(energy_event, imax, pmax, umax, phase);
     let tic = jconf.get::<u32>("tic")?;
 
     // create backend API
@@ -101,6 +103,7 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
         pmax,
         imax,
         umax,
+        phase,
         tic,
     };
 
