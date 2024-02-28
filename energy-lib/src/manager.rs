@@ -24,9 +24,9 @@ pub struct ManagerHandle {
 
 impl ManagerHandle {
     pub fn new(event: &'static AfbEvent, imax: i32, pmax: i32, umax: i32) -> &'static mut Self {
-        let imax = imax * 100;
-        let pmax = pmax * 100;
-        let umax = umax * 100;
+        let imax = imax * 1000;
+        let pmax = pmax * 1000;
+        let umax = umax * 1000;
         let handle = ManagerHandle {
             data_set: Mutex::new(EnergyState::default(imax, pmax, umax)),
             event,
@@ -60,14 +60,14 @@ impl ManagerHandle {
     pub fn get_config(&self) -> Result<EngyConfSet, AfbError> {
         let data_set = self.get_state()?;
         Ok(EngyConfSet {
-            pmax: data_set.pmax / 100,
-            imax: data_set.imax / 100,
+            pmax: data_set.pmax / 1000,
+            imax: data_set.imax / 1000,
         })
     }
 
     pub fn set_imax_cable(&self, amp_max: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
-        let amp_max = amp_max * 100;
+        let amp_max = amp_max * 1000;
         if amp_max != 0 && amp_max < self.imax {
             data_set.imax = amp_max;
         } else {
@@ -78,7 +78,7 @@ impl ManagerHandle {
 
     pub fn set_power_backend(&self, kwh_max: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
-        let kwh_max = kwh_max * 100;
+        let kwh_max = kwh_max * 1000;
 
         if kwh_max != 0 && kwh_max < self.pmax {
             data_set.pmax = kwh_max;
@@ -91,7 +91,7 @@ impl ManagerHandle {
     pub fn set_power_subscription(&self, watt_max: i32, volts: i32) -> Result<&Self, AfbError> {
         let mut data_set = self.get_state()?;
 
-        data_set.subscription_max = watt_max * 100;
+        data_set.subscription_max = watt_max * 1000;
         data_set.volts = volts;
         Ok(self)
     }
@@ -129,7 +129,7 @@ impl ManagerHandle {
         let remaining = (self.pmax * 80) / 100 - data.total;
         let iavail = remaining / data_set.volts / nb_phases;
 
-        Ok((iavail / 100, data_set.imax)) //move to A
+        Ok((iavail / 1000, data_set.imax)) //move to A
     }
 
     pub fn subscribe_over_power(&self, rqt: &AfbRequest) -> Result<(), AfbError> {

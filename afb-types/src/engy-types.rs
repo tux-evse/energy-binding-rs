@@ -72,7 +72,7 @@ impl MeterDataSet {
 
     // update data_set and set updated flag when total changes.
     pub fn update(&mut self, phase: usize, meter: f64) -> Result<(), AfbError> {
-        let value = (meter * 100.0).round() as i32;
+        let value = (meter * 1000.0).round() as i32;
         let variation = value*self.variation/100;
         match phase {
             0 => {

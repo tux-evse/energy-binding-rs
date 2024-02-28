@@ -75,7 +75,7 @@ fn evt_iavail_cb(
     let jargs = args.get::<JsoncObj>(0)?;
     for idx in 0..jargs.count()? {
         let value = jargs.index::<f64>(idx)?;
-        data_set.total = data_set.total + (value * 100.0).round() as i32;
+        data_set.total = data_set.total + (value * 1000.0).round() as i32;
         data_set.update(idx, value)?;
     }
     if data_set.updated {
@@ -238,7 +238,7 @@ fn meter_request_cb(
                 let data = response.get::<f64>(0)?;
                 data_set.update(idx, data)?;
 
-                let value = (data * 100.0).round() as i32;
+                let value = (data * 1000.0).round() as i32;
                 match idx {
                     0 => data_set.total = value - data_set.start,
                     1 => data_set.l1 = value,
@@ -293,7 +293,7 @@ fn meter_request_cb(
             )?;
 
             let data = response.get::<f64>(0)?;
-            data_set.start = (data * 100.0).round() as i32;
+            data_set.start = (data * 1000.0).round() as i32;
             data_set.total = 0;
 
             data_set.tag = data_set.tag.clone();
