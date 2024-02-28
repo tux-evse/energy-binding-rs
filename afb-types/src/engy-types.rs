@@ -131,7 +131,6 @@ pub struct EnergyState {
     pub imax: i32,
     #[serde(skip)]
     pub pmax: i32,
-    pub volts: i32,
     // public data
     pub timestamp: Duration,
     pub session: i32,
@@ -148,7 +147,6 @@ impl EnergyState {
             pmax: pmax,
             umax: umax,
             session: 0,
-            volts: 0,
             current: 0,
             tension: 0,
             power: 0,

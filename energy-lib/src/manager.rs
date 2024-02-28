@@ -92,7 +92,7 @@ impl ManagerHandle {
         let mut data_set = self.get_state()?;
 
         data_set.subscription_max = watt_max * 1000;
-        data_set.volts = volts;
+        data_set.tension = volts;
         Ok(self)
     }
 
@@ -112,22 +112,9 @@ impl ManagerHandle {
     pub fn check_available_current(&self, data: &MeterDataSet) -> Result<(i32, i32), AfbError> {
         let data_set = self.get_state()?;
 
-        let nb_phases = if data.total == data.l1 {
-            1
-        } else {
-            let mut phases = 1;
-            if data.l2 > 0 {
-                phases = phases + 1
-            };
-            if data.l3 > 0 {
-                phases = phases + 1
-            };
-            phases
-        };
-
         // never use more than 80% of available subscription power
         let remaining = (self.pmax * 80) / 100 - data.total;
-        let iavail = remaining / data_set.volts / nb_phases;
+        let iavail = remaining / data_set.tension;
 
         Ok((iavail / 1000, data_set.imax)) //move to A
     }
