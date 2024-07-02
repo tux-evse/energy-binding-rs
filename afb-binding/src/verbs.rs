@@ -21,9 +21,17 @@ struct TimerCtx {
     mgr: &'static ManagerHandle,
     evt: &'static AfbEvent,
 }
+
+
+struct TimerDataCtx {
+    mgr: &'static ManagerHandle,
+    evt: &'static AfbEvent,
+}
+
 // send charging state every tic ms.
-AfbTimerRegister!(TimerCtrl, timer_callback, TimerCtx);
-fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &mut TimerCtx) -> Result<(), AfbError> {
+fn timer_callback(_timer: &AfbTimer, _decount: u32, ctxData: &AfbCtxData) -> Result<(), AfbError> {
+
+    let ctx = ctxData.get_ref::<TimerDataCtx>()?;
     let state = ctx.mgr.clone_state()?;
     ctx.evt.push(state);
     Ok(())
@@ -35,12 +43,20 @@ struct LinkyOverEvtCtx {
     evt: &'static AfbEvent,
 }
 
-AfbEventRegister!(LinkyOverEvtCtrl, evt_iover_cb, LinkyOverEvtCtx);
+struct LinkyOverDataCtx {
+    energy_mgr: &'static ManagerHandle,
+    data_set: Rc<RefCell<MeterDataSet>>,
+    evt: &'static AfbEvent,
+}
+
 fn evt_iover_cb(
     _evt: &AfbEventMsg,
-    args: &AfbData,
-    ctx: &mut LinkyOverEvtCtx,
+    args: &AfbRqtData,      /* ISSUE 1 : AfbData to AfbRqtData */
+    ctxData: &AfbCtxData,//&mut LinkyOverEvtCtx,
 ) -> Result<(), AfbError> {
+
+    let ctx = ctxData.get_ref::<LinkyOverDataCtx>()?;
+
     let mut data_set = match ctx.data_set.try_borrow_mut() {
         Err(_) => return afb_error!("energy-LinkyAdps-update", "fail to access energy state"),
         Ok(value) => value,
@@ -62,12 +78,22 @@ struct LinkyAvailEvtCtx {
     data_set: Rc<RefCell<MeterDataSet>>,
     evt: &'static AfbEvent,
 }
-AfbEventRegister!(LinkyAvailEvtCtrl, evt_iavail_cb, LinkyAvailEvtCtx);
+
+struct LinkyAvailDataCtx {
+    energy_mgr: &'static ManagerHandle,
+    data_set: Rc<RefCell<MeterDataSet>>,
+    evt: &'static AfbEvent,
+}
+
+
 fn evt_iavail_cb(
     _evt: &AfbEventMsg,
-    args: &AfbData,
-    ctx: &mut LinkyAvailEvtCtx,
+    args: &AfbRqtData,
+    ctxData:&AfbCtxData,
 ) -> Result<(), AfbError> {
+
+    let ctx = ctxData.get_ref::<LinkyAvailDataCtx>()?;
+
     let mut data_set = match ctx.data_set.try_borrow_mut() {
         Err(_) => return afb_error!("energy-LinkyAvail-update", "fail to access energy state"),
         Ok(value) => value,
@@ -93,12 +119,22 @@ struct LinkyRqtCtx {
     linky_verb: &'static str,
     evt: &'static AfbEvent,
 }
-AfbVerbRegister!(LinkyRqtVerb, adps_request_cb, LinkyRqtCtx);
+
+struct LinkyRqtData{
+    data_set: Rc<RefCell<MeterDataSet>>,
+    linky_api: &'static str,
+    linky_verb: &'static str,
+    evt: &'static AfbEvent,
+}
+
 fn adps_request_cb(
     rqt: &AfbRequest,
-    args: &AfbData,
-    ctx: &mut LinkyRqtCtx,
+    args: &AfbRqtData,
+    ctxData: &AfbCtxData,
 ) -> Result<(), AfbError> {
+
+    let ctx = ctxData.get_ref::<LinkyRqtData>()?;
+
     match args.get::<&EnergyAction>(0)? {
         EnergyAction::READ => {
             if ctx.linky_api == "" {
@@ -170,8 +206,17 @@ struct MeterEvtCtx {
     energy_mgr: &'static ManagerHandle,
 }
 
-AfbEventRegister!(MeterEvtCtrl, evt_meter_cb, MeterEvtCtx);
-fn evt_meter_cb(evt: &AfbEventMsg, args: &AfbData, ctx: &mut MeterEvtCtx) -> Result<(), AfbError> {
+struct MeterDataCtx {
+    data_set: Rc<RefCell<MeterDataSet>>,
+    labels: &'static [&'static str],
+    meter_api: &'static str,
+    evt: &'static AfbEvent,
+    energy_mgr: &'static ManagerHandle,
+}
+
+fn evt_meter_cb(evt: &AfbEventMsg, args: &AfbRqtData, ctx:&AfbCtxData) -> Result<(), AfbError> {/* ISSUE 1 : AfbData to AfbRqtData */
+    
+    let ctx = ctx.get_ref::<MeterDataCtx>()?;
     let mut data_set = match ctx.data_set.try_borrow_mut() {
         Err(_) => return afb_error!("energy-metercb-update", "fail to access energy state"),
         Ok(value) => value,
@@ -214,12 +259,24 @@ struct MeterRequestCtx {
     labels: &'static [&'static str],
     evt: &'static AfbEvent,
 }
-AfbVerbRegister!(MeterRequestVerb, meter_request_cb, MeterRequestCtx);
+
+struct EvtMeterRequestData{
+    // ctx:Arc<MeterRequestCtx>,
+    data_set: Rc<RefCell<MeterDataSet>>,
+    meter_api: &'static str,
+    meter_prefix: &'static str,
+    labels: &'static [&'static str],
+    evt: &'static AfbEvent,
+}
+
 fn meter_request_cb(
     rqt: &AfbRequest,
-    args: &AfbData,
-    ctx: &mut MeterRequestCtx,
+    args: &AfbRqtData,
+    ctxData: &AfbCtxData,
 ) -> Result<(), AfbError> {
+
+    let ctx = ctxData.get_ref::<EvtMeterRequestData>()?;
+
     let mut data_set = match ctx.data_set.try_borrow_mut() {
         Err(_) => return afb_error!("energy-meter-update", "fail to access energy state"),
         Ok(value) => value,
@@ -313,12 +370,18 @@ struct ConfRequestCtx {
     energy_mgr: &'static ManagerHandle,
 }
 
-AfbVerbRegister!(ConfRequestVerb, conf_request_cb, ConfRequestCtx);
+struct ConfRequestDataCtx {
+    energy_mgr: &'static ManagerHandle,
+}
+
 fn conf_request_cb(
     rqt: &AfbRequest,
-    args: &AfbData,
-    ctx: &mut ConfRequestCtx,
+    args: &AfbRqtData,
+    ctxData: &AfbCtxData,
 ) -> Result<(), AfbError> {
+
+    let ctx = ctxData.get_ref::<ConfRequestDataCtx>()?;
+
     let config = args.get::<&EngyConfSet>(0)?;
     afb_log_msg!(Debug, rqt, "update energy conf={:?}", config);
 
@@ -338,12 +401,23 @@ struct StateRequestCtx {
     meter_prefix: &'static str,
     labels: &'static [&'static str],
 }
-AfbVerbRegister!(StateRequestVerb, state_request_cb, StateRequestCtx);
+
+struct EvtStateRequestData {
+    mgr: &'static ManagerHandle,
+    evt: &'static AfbEvent,
+    meter_api: &'static str,
+    meter_prefix: &'static str,
+    labels: &'static [&'static str],
+}
+
 fn state_request_cb(
     rqt: &AfbRequest,
-    args: &AfbData,
-    ctx: &mut StateRequestCtx,
+    args: &AfbRqtData,
+    ctxData: &AfbCtxData,
 ) -> Result<(), AfbError> {
+
+    let ctx = ctxData.get_ref::<EvtStateRequestData>()?;
+
     match args.get::<&EnergyAction>(0)? {
         EnergyAction::READ => {
             let state = ctx.mgr.clone_state()?;
@@ -401,33 +475,36 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     AfbTimer::new("tic-timer")
         .set_period(config.tic)
         .set_decount(0)
-        .set_callback(Box::new(TimerCtx {
+        .set_callback(timer_callback)
+        .set_context(TimerCtx{
             mgr: config.energy_mgr,
             evt: state_event,
-        }))
+        })
         .start()?;
 
     let state_verb = AfbVerb::new("charging-state")
         .set_name("state")
         .set_info("current charging state (energy)")
-        .set_action("['read','subscribe','unsubscribe']")?
-        .set_callback(Box::new(StateRequestCtx {
+        .set_actions("['read','subscribe','unsubscribe']")?
+        .set_callback(state_request_cb)
+        .set_context(StateRequestCtx{
             mgr: config.energy_mgr,
             evt: state_event,
             meter_api: config.meter_api,
             meter_prefix: "SDM72D",
             labels: &GLO_STATE,
-        }))
+        })
         .finalize()?;
 
     const VB_CONFIG: &str = "config";
     let config_verb = AfbVerb::new("config-energy")
         .set_name(VB_CONFIG)
         .set_info("configure max power/current")
-        .set_sample("{'imax':10, 'pmax':22}")?
-        .set_callback(Box::new(ConfRequestCtx {
+        .add_sample("{'imax':10, 'pmax':22}")?
+        .set_callback(conf_request_cb)
+        .set_context(ConfRequestCtx {
             energy_mgr: config.energy_mgr,
-        }))
+        })
         .finalize()?;
 
     // Tension data_set from eastron modbus meter
@@ -437,25 +514,27 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     let tension_verb = AfbVerb::new("tension-volts")
         .set_name(VB_TENSION)
         .set_info("tension in volt*100")
-        .set_action(ACTIONS)?
-        .set_callback(Box::new(MeterRequestCtx {
+        .set_actions(ACTIONS)?
+        .set_callback(meter_request_cb)
+        .set_context(MeterRequestCtx{
             data_set: tension_set.clone(),
             labels: &VOLTS,
             meter_api: config.meter_api,
             meter_prefix: "SDM72D",
             evt: tension_event,
-        }))
+        })
         .finalize()?;
 
     let tension_handler = AfbEvtHandler::new(VB_TENSION)
         .set_pattern(to_static_str(format!("{}/Volt*", config.meter_api)))
-        .set_callback(Box::new(MeterEvtCtrl {
+        .set_callback(evt_meter_cb)
+        .set_context(MeterEvtCtx{
             data_set: tension_set.clone(),
             evt: tension_event,
             labels: &VOLTS,
             meter_api: config.meter_api,
             energy_mgr: config.energy_mgr,
-        }))
+        })
         .finalize()?;
 
     // Energy data_set from eastron modbus meter
@@ -465,25 +544,27 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     let energy_verb = AfbVerb::new("Energy-watt")
         .set_name(VB_ENERGY)
         .set_info("energy in watt*100")
-        .set_action(RESET)?
-        .set_callback(Box::new(MeterRequestCtx {
+        .set_actions(RESET)?
+        .set_callback(meter_request_cb)
+        .set_context(MeterRequestCtx{
             data_set: energy_set.clone(),
             labels: &ENERGY,
             meter_api: config.meter_api,
             meter_prefix: "SDM72D",
             evt: energy_event,
-        }))
+        })
         .finalize()?;
 
     let energy_handler = AfbEvtHandler::new(VB_ENERGY)
         .set_pattern(to_static_str(format!("{}/Energy-*", config.meter_api)))
-        .set_callback(Box::new(MeterEvtCtrl {
+        .set_callback(evt_meter_cb)
+        .set_context(MeterEvtCtx{
             data_set: energy_set.clone(),
             evt: energy_event,
             labels: &ENERGY,
             meter_api: config.meter_api,
             energy_mgr: config.energy_mgr,
-        }))
+        })
         .finalize()?;
 
     // Current data_set from eastron modbus meter
@@ -493,25 +574,27 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     let current_verb = AfbVerb::new("current-amps")
         .set_name(VB_CURRENT)
         .set_info("current in amps*100")
-        .set_action(ACTIONS)?
-        .set_callback(Box::new(MeterRequestCtx {
+        .set_actions(ACTIONS)?
+        .set_callback(meter_request_cb)
+        .set_context(MeterRequestCtx{
             data_set: current_set.clone(),
             labels: &CURRENTS,
             meter_api: config.meter_api,
             meter_prefix: "SDM72D",
             evt: current_event,
-        }))
+        })
         .finalize()?;
 
     let current_handler = AfbEvtHandler::new(VB_CURRENT)
         .set_pattern(to_static_str(format!("{}/Amp*", config.meter_api)))
-        .set_callback(Box::new(MeterEvtCtrl {
+        .set_callback(evt_meter_cb)
+        .set_context(MeterEvtCtx{
             data_set: current_set.clone(),
             evt: current_event,
             labels: &CURRENTS,
             meter_api: config.meter_api,
             energy_mgr: config.energy_mgr,
-        }))
+        })
         .finalize()?;
 
     // Power data_set from eastron modbus meter
@@ -521,25 +604,27 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     let power_verb = AfbVerb::new("power-Watt")
         .set_name(VB_POWER)
         .set_info("power in Watt*100")
-        .set_action(ACTIONS)?
-        .set_callback(Box::new(MeterRequestCtx {
+        .set_actions(ACTIONS)?
+        .set_callback(meter_request_cb)
+        .set_context(MeterRequestCtx{
             data_set: power_set.clone(),
             labels: &POWER,
             meter_api: config.meter_api,
             meter_prefix: "SDM72D",
             evt: power_event,
-        }))
+        })
         .finalize()?;
 
     let power_handler = AfbEvtHandler::new(VB_POWER)
         .set_pattern(to_static_str(format!("{}/Watt*", config.meter_api)))
-        .set_callback(Box::new(MeterEvtCtrl {
+        .set_callback(evt_meter_cb)
+        .set_context(MeterEvtCtx{
             data_set: power_set.clone(),
             evt: power_event,
             labels: &POWER,
             meter_api: config.meter_api,
             energy_mgr: config.energy_mgr,
-        }))
+        })
         .finalize()?;
 
     // Over current data_set from Linky meter
@@ -552,21 +637,23 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     let adps_verb = AfbVerb::new("over-current")
         .set_name(OVER_LINKY)
         .set_info("current over current(adps) in A")
-        .set_action(ACTIONS)?
-        .set_callback(Box::new(LinkyRqtCtx {
+        .set_actions(ACTIONS)?
+        .set_callback(adps_request_cb)
+        .set_context(LinkyRqtCtx{
             data_set: adps_set.clone(),
             linky_api: config.linky_api,
             linky_verb: "ADPS",
             evt: adps_event,
-        }))
+        })
         .finalize()?;
     let adps_handler = AfbEvtHandler::new(OVER_LINKY)
         .set_pattern(to_static_str(format!("{}/ADPS", config.linky_api)))
-        .set_callback(Box::new(LinkyOverEvtCtx {
+        .set_callback(evt_iover_cb)
+        .set_context(LinkyOverDataCtx{
             data_set: adps_set.clone(),
             evt: adps_event,
             energy_mgr: config.energy_mgr,
-        }))
+        })
         .finalize()?;
 
     // Over current data_set from Linky meter
@@ -579,21 +666,23 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     let iavail_verb = AfbVerb::new("avail-current")
         .set_name(AVAIL_LINKY)
         .set_info("current avaliable (sinsts) in VA")
-        .set_action(ACTIONS)?
-        .set_callback(Box::new(LinkyRqtCtx {
+        .set_actions(ACTIONS)?
+        .set_callback(state_request_cb)
+        .set_context(LinkyRqtCtx {
             data_set: avail_set.clone(),
             linky_api: config.linky_api,
             linky_verb: "SINSTS",
             evt: iavail_event,
-        }))
+        })
         .finalize()?;
     let iavail_handler = AfbEvtHandler::new(AVAIL_LINKY)
         .set_pattern(to_static_str(format!("{}/SINSTS", config.linky_api)))
-        .set_callback(Box::new(LinkyAvailEvtCtx {
+        .set_callback(evt_iavail_cb)
+        .set_context(LinkyAvailEvtCtx{
             data_set: avail_set.clone(),
             evt: iavail_event,
             energy_mgr: config.energy_mgr,
-        }))
+        })
         .finalize()?;
 
     api.add_event(adps_event);
