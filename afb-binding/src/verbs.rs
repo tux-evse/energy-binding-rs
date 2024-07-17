@@ -22,14 +22,16 @@ struct TimerCtx {
     evt: &'static AfbEvent,
 }
 
-// send charging state every tic ms.
-fn timer_callback(
-    _timer: &AfbTimer, 
-    _decount: u32, 
-    ctx_data: &AfbCtxData
-) -> Result<(), AfbError> {
 
-    let ctx = ctx_data.get_ref::<TimerCtx>()?;
+struct TimerDataCtx {
+    mgr: &'static ManagerHandle,
+    evt: &'static AfbEvent,
+}
+
+// send charging state every tic ms.
+fn timer_callback(_timer: &AfbTimer, _decount: u32, ctxData: &AfbCtxData) -> Result<(), AfbError> {
+
+    let ctx = ctxData.get_ref::<TimerDataCtx>()?;
     let state = ctx.mgr.clone_state()?;
     ctx.evt.push(state);
     Ok(())
@@ -41,13 +43,19 @@ struct LinkyOverEvtCtx {
     evt: &'static AfbEvent,
 }
 
+struct LinkyOverDataCtx {
+    energy_mgr: &'static ManagerHandle,
+    data_set: Rc<RefCell<MeterDataSet>>,
+    evt: &'static AfbEvent,
+}
+
 fn evt_iover_cb(
     _evt: &AfbEventMsg,
-    args: &AfbRqtData,
-    ctx_data: &AfbCtxData,
+    args: &AfbRqtData,      /* ISSUE 1 : AfbData to AfbRqtData */
+    ctxData: &AfbCtxData,//&mut LinkyOverEvtCtx,
 ) -> Result<(), AfbError> {
 
-    let ctx = ctx_data.get_ref::<LinkyOverEvtCtx>()?;
+    let ctx = ctxData.get_ref::<LinkyOverDataCtx>()?;
 
     let mut data_set = match ctx.data_set.try_borrow_mut() {
         Err(_) => return afb_error!("energy-LinkyAdps-update", "fail to access energy state"),
@@ -71,13 +79,20 @@ struct LinkyAvailEvtCtx {
     evt: &'static AfbEvent,
 }
 
+struct LinkyAvailDataCtx {
+    energy_mgr: &'static ManagerHandle,
+    data_set: Rc<RefCell<MeterDataSet>>,
+    evt: &'static AfbEvent,
+}
+
+
 fn evt_iavail_cb(
     _evt: &AfbEventMsg,
     args: &AfbRqtData,
-    ctx_data:&AfbCtxData,
+    ctxData:&AfbCtxData,
 ) -> Result<(), AfbError> {
 
-    let ctx = ctx_data.get_ref::<LinkyAvailEvtCtx>()?;
+    let ctx = ctxData.get_ref::<LinkyAvailDataCtx>()?;
 
     let mut data_set = match ctx.data_set.try_borrow_mut() {
         Err(_) => return afb_error!("energy-LinkyAvail-update", "fail to access energy state"),
@@ -105,13 +120,20 @@ struct LinkyRqtCtx {
     evt: &'static AfbEvent,
 }
 
+struct LinkyRqtData{
+    data_set: Rc<RefCell<MeterDataSet>>,
+    linky_api: &'static str,
+    linky_verb: &'static str,
+    evt: &'static AfbEvent,
+}
+
 fn adps_request_cb(
     rqt: &AfbRequest,
     args: &AfbRqtData,
-    ctx_data: &AfbCtxData,
+    ctxData: &AfbCtxData,
 ) -> Result<(), AfbError> {
 
-    let ctx = ctx_data.get_ref::<LinkyRqtCtx>()?;
+    let ctx = ctxData.get_ref::<LinkyRqtData>()?;
 
     match args.get::<&EnergyAction>(0)? {
         EnergyAction::READ => {
@@ -184,9 +206,17 @@ struct MeterEvtCtx {
     energy_mgr: &'static ManagerHandle,
 }
 
+struct MeterDataCtx {
+    data_set: Rc<RefCell<MeterDataSet>>,
+    labels: &'static [&'static str],
+    meter_api: &'static str,
+    evt: &'static AfbEvent,
+    energy_mgr: &'static ManagerHandle,
+}
+
 fn evt_meter_cb(evt: &AfbEventMsg, args: &AfbRqtData, ctx:&AfbCtxData) -> Result<(), AfbError> {/* ISSUE 1 : AfbData to AfbRqtData */
     
-    let ctx = ctx.get_ref::<MeterEvtCtx>()?;
+    let ctx = ctx.get_ref::<MeterDataCtx>()?;
     let mut data_set = match ctx.data_set.try_borrow_mut() {
         Err(_) => return afb_error!("energy-metercb-update", "fail to access energy state"),
         Ok(value) => value,
@@ -230,13 +260,22 @@ struct MeterRequestCtx {
     evt: &'static AfbEvent,
 }
 
+struct EvtMeterRequestData{
+    // ctx:Arc<MeterRequestCtx>,
+    data_set: Rc<RefCell<MeterDataSet>>,
+    meter_api: &'static str,
+    meter_prefix: &'static str,
+    labels: &'static [&'static str],
+    evt: &'static AfbEvent,
+}
+
 fn meter_request_cb(
     rqt: &AfbRequest,
     args: &AfbRqtData,
-    ctx_data: &AfbCtxData,
+    ctxData: &AfbCtxData,
 ) -> Result<(), AfbError> {
 
-    let ctx = ctx_data.get_ref::<MeterRequestCtx>()?;
+    let ctx = ctxData.get_ref::<EvtMeterRequestData>()?;
 
     let mut data_set = match ctx.data_set.try_borrow_mut() {
         Err(_) => return afb_error!("energy-meter-update", "fail to access energy state"),
@@ -331,13 +370,17 @@ struct ConfRequestCtx {
     energy_mgr: &'static ManagerHandle,
 }
 
+struct ConfRequestDataCtx {
+    energy_mgr: &'static ManagerHandle,
+}
+
 fn conf_request_cb(
     rqt: &AfbRequest,
     args: &AfbRqtData,
-    ctx_data: &AfbCtxData,
+    ctxData: &AfbCtxData,
 ) -> Result<(), AfbError> {
 
-    let ctx = ctx_data.get_ref::<ConfRequestCtx>()?;
+    let ctx = ctxData.get_ref::<ConfRequestDataCtx>()?;
 
     let config = args.get::<&EngyConfSet>(0)?;
     afb_log_msg!(Debug, rqt, "update energy conf={:?}", config);
@@ -359,13 +402,21 @@ struct StateRequestCtx {
     labels: &'static [&'static str],
 }
 
+struct EvtStateRequestData {
+    mgr: &'static ManagerHandle,
+    evt: &'static AfbEvent,
+    meter_api: &'static str,
+    meter_prefix: &'static str,
+    labels: &'static [&'static str],
+}
+
 fn state_request_cb(
     rqt: &AfbRequest,
     args: &AfbRqtData,
-    ctx_data: &AfbCtxData,
+    ctxData: &AfbCtxData,
 ) -> Result<(), AfbError> {
 
-    let ctx = ctx_data.get_ref::<StateRequestCtx>()?;
+    let ctx = ctxData.get_ref::<EvtStateRequestData>()?;
 
     match args.get::<&EnergyAction>(0)? {
         EnergyAction::READ => {
@@ -598,7 +649,7 @@ pub(crate) fn register_verbs(api: &mut AfbApi, config: BindingCfg) -> Result<(),
     let adps_handler = AfbEvtHandler::new(OVER_LINKY)
         .set_pattern(to_static_str(format!("{}/ADPS", config.linky_api)))
         .set_callback(evt_iover_cb)
-        .set_context(LinkyOverEvtCtx{
+        .set_context(LinkyOverDataCtx{
             data_set: adps_set.clone(),
             evt: adps_event,
             energy_mgr: config.energy_mgr,
