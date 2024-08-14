@@ -1,7 +1,7 @@
 {
     "binding": [
         {
-            "path": "/usr/redpesk/modbus-binding/lib/afb-modbus.so",
+            "path": "/usr/redpesk/modbus-binding/lib/modbus-binding.so",
             "reference": "https://xn--stromzhler-v5a.eu/media/pdf/93/17/d7/SDM72DM-V2.pdf",
             "metadata": {
                 "uid": "modbus",
