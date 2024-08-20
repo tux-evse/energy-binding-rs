@@ -22,16 +22,10 @@
      evt: &'static AfbEvent,
  }
  
- 
- struct TimerDataCtx {
-     mgr: &'static ManagerHandle,
-     evt: &'static AfbEvent,
- }
- 
  // send charging state every tic ms.
  fn timer_callback(_timer: &AfbTimer, _decount: u32, ctx: &AfbCtxData) -> Result<(), AfbError> {
  
-     let ctx = ctx.get_ref::<TimerDataCtx>()?;
+     let ctx = ctx.get_ref::<TimerCtx>()?;
      let state = ctx.mgr.clone_state()?;
      ctx.evt.push(state);
      Ok(())
