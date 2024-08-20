@@ -253,23 +253,14 @@
      labels: &'static [&'static str],
      evt: &'static AfbEvent,
  }
- 
- struct EvtMeterRequestData{
-     // ctx:Arc<MeterRequestCtx>,
-     data_set: Rc<RefCell<MeterDataSet>>,
-     meter_api: &'static str,
-     meter_prefix: &'static str,
-     labels: &'static [&'static str],
-     evt: &'static AfbEvent,
- }
- 
+
  fn meter_request_cb(
      rqt: &AfbRequest,
      args: &AfbRqtData,
      ctx: &AfbCtxData,
  ) -> Result<(), AfbError> {
  
-     let ctx = ctx.get_ref::<EvtMeterRequestData>()?;
+     let ctx = ctx.get_ref::<MeterRequestCtx>()?;
  
      let mut data_set = match ctx.data_set.try_borrow_mut() {
          Err(_) => return afb_error!("energy-meter-update", "fail to access energy state"),
