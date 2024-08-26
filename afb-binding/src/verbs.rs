@@ -610,9 +610,9 @@
      let iavail_event = AfbEvent::new(AVAIL_LINKY);
      let iavail_verb = AfbVerb::new("avail-current")
          .set_name(AVAIL_LINKY)
-         .set_info("current avaliable (sinsts) in VA")
+         .set_info("current available (sinsts) in VA")
          .set_actions(ACTIONS)?
-         .set_callback(state_request_cb)
+         .set_callback(adps_request_cb)
          .set_context(LinkyRqtCtx {
              data_set: avail_set.clone(),
              linky_api: config.linky_api,
