@@ -15,14 +15,9 @@ use energy::prelude::*;
 use typesv4::prelude::*;
 
 pub struct BindingCfg {
-    pub uid: &'static str,
     pub linky_api: &'static str,
     pub meter_api: &'static str,
     pub energy_mgr: &'static ManagerHandle,
-    pub imax: i32,
-    pub pmax: i32,
-    pub umax: i32,
-    pub phase: i32,
     pub tic: u32,
 }
 
@@ -96,14 +91,9 @@ pub fn binding_init(rootv4: AfbApiV4, jconf: JsoncObj) -> Result<&'static AfbApi
         }));
 
     let config = BindingCfg {
-        uid,
         meter_api,
         linky_api,
         energy_mgr,
-        pmax,
-        imax,
-        umax,
-        phase,
         tic,
     };
 
