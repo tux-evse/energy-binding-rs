@@ -66,7 +66,7 @@
                     },
                     {
                         "uid": "Volt-Avr",
-                        "register": 42,
+                        "register": 4,
                         "type": "Register_input",
                         "format": "FLOAT_DCBA"
                     },
